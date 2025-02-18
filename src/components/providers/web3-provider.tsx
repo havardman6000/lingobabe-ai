@@ -1,4 +1,5 @@
 // src/components/providers/web3-provider.tsx
+"use client"; 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import Web3 from 'web3';
 import { useRouter } from 'next/navigation';

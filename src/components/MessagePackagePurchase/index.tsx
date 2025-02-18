@@ -29,10 +29,9 @@ export const MessagePackagePurchase = () => {
 
       // Purchase through smart contract
       await window.tokenManager.purchaseMessagePackage();
-      
+
       // Update local message tracking
       await purchasePackage();
-
     } catch (err: any) {
       setError(err.message || 'Failed to purchase message package');
     } finally {
@@ -40,10 +39,31 @@ export const MessagePackagePurchase = () => {
     }
   };
 
+  const handleClaimFaucet = async () => {
+    if (!address || !window.tokenManager) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await window.tokenManager.claimFaucet();
+      // Update UI or trigger a refresh of the token balance
+    } catch (err: any) {
+      setError(err.message || 'Failed to claim from faucet');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-800 rounded-lg">
-      <h2 className="text-xl font-bold text-white mb-4">Purchase Message Package</h2>
-      
+      <h2 className="text-xl font-bold text-white mb-4 text-center">
+        Purchase Message Package
+      </h2>
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -68,6 +88,14 @@ export const MessagePackagePurchase = () => {
           className="w-full bg-green-500 hover:bg-green-600 text-white"
         >
           {isLoading ? 'Processing...' : 'Purchase 50 Messages (50 LBAI)'}
+        </Button>
+
+        <Button
+          onClick={handleClaimFaucet}
+          disabled={isLoading}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white mt-2"
+        >
+          {isLoading ? 'Claiming...' : 'Claim Tokens from Faucet'}
         </Button>
 
         <p className="text-sm text-gray-400 text-center">

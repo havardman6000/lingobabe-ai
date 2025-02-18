@@ -12,3 +12,10 @@ export interface PendingUpdate {
     getMessagesRemaining(address: string): Promise<number>;
     clearMessageCount(address: string): void;
   }
+  export interface MessageStats {
+    messagesRemaining: number;
+    messagesUsed: number;
+    packagesPurchased: number;
+    lastPurchaseTimestamp?: number;
+  }
+  

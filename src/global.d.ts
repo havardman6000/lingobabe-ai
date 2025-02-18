@@ -6,6 +6,7 @@ import Web3 from 'web3';
 declare global {
   interface Window {
     ethereum?: {
+      currentProvider: any;
       isMetaMask?: boolean;
       request: (args: { method: string; params?: any[] }) => Promise<any>;
       on: (event: string, callback: (params: any) => void) => void;

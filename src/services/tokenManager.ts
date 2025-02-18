@@ -270,7 +270,7 @@ class TokenManager {
       return {
         messagesRemaining: Number(remaining),
         hasEnoughTokens: parseFloat(balance) >= 1,
-        canPurchasePackage: parseFloat(balance) >= 50
+        canPurchasePackage: parseFloat(balance) 
       };
     } catch (error) {
       console.error('Failed to check token allowance:', error);

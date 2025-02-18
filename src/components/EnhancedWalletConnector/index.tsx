@@ -1,49 +1,26 @@
+// src/components/EnhancedWalletConnector/index.tsx
+"use client";
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useWeb3 } from '@/components/providers/web3-provider';
+import { useTokenManager } from '@/components/providers/TokenManagerContext';
 
 export default function EnhancedWalletConnector() {
   const router = useRouter();
-  const { isConnected, connect: providerConnect, disconnect: providerDisconnect } = useWeb3();
+  const { isConnected, connect: providerConnect, disconnect: providerDisconnect, address } = useWeb3();
+  const { messagesRemaining, canPurchasePackage, refreshData } = useTokenManager();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
-  const [walletInfo, setWalletInfo] = useState({
-    address: '',
-    balance: '0',
-    messagesRemaining: 50
-  });
-
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({
-            method: 'eth_accounts'
-          });
-          
-          if (accounts?.length > 0) {
-            setWalletInfo(prev => ({
-              ...prev,
-              address: accounts[0]
-            }));
-          }
-        } catch (error) {
-          console.error('Connection check error:', error);
-        }
-      }
-    };
-
-    checkConnection();
-  }, [isConnected]);
 
   const handleDisconnect = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (isDisconnecting) return;
 
     try {
@@ -65,14 +42,6 @@ export default function EnhancedWalletConnector() {
       // Call provider disconnect
       await providerDisconnect();
 
-      // Reset component state
-      setWalletInfo({
-        address: '',
-        balance: '0',
-        messagesRemaining: 50
-      });
-      setShowDisconnect(false);
-
       // Immediate redirect without timeout
       window.location.href = '/';
 
@@ -88,10 +57,16 @@ export default function EnhancedWalletConnector() {
   const handleConnect = async () => {
     try {
       await providerConnect();
+      await refreshData(); // Refresh data after connecting
     } catch (error: any) {
       setError(error.message || 'Failed to connect wallet');
       setShowError(true);
     }
+  };
+
+  const handleSendMessage = async () => {
+    // Logic to send a message
+    await refreshData(); // Refresh data after sending a message
   };
 
   if (!isConnected) {
@@ -125,13 +100,13 @@ export default function EnhancedWalletConnector() {
         onClick={() => setShowDisconnect(!showDisconnect)}
       >
         <div className="bg-white/50 px-4 py-2 rounded-lg">
-          <div className="text-sm">{walletInfo.messagesRemaining}/50 Messages</div>
+          <div className="text-sm">{messagesRemaining}/50 Messages</div>
         </div>
 
         <div className="flex items-center gap-2 px-4 py-2 bg-white/50 rounded-lg">
           <div className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-sm font-medium">
-            {`${walletInfo.address.substring(0, 6)}...${walletInfo.address.substring(walletInfo.address.length - 4)}`}
+            {`${address?.substring(0, 6)}...${address?.substring(address.length - 4)}`}
           </span>
         </div>
 
