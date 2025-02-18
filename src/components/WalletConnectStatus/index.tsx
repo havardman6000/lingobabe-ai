@@ -1,4 +1,4 @@
-// src/components/WalletConnectStatus/index.tsx
+// Updated WalletConnectStatus component without Active Chat Access panel
 import React from 'react';
 import { useWeb3 } from '@/components/providers/web3-provider';
 import { Button } from '@/components/ui/button';

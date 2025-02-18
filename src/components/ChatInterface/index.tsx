@@ -9,15 +9,15 @@ import { ChatMessageComponent } from './ChatMessage';
 import { ChatOptions } from './ChatOptions';
 import { ChatHeader } from './ChatHeader';
 import { VideoPlayer } from './VideoPlayer';
+import { ConfirmExitDialog } from '@/components/ConfirmExitDialog'; 
 import { useChatStore } from '@/store/chatStore';
 import { useWeb3 } from '@/components/providers/web3-provider';
 import { characters, isValidCharacterId } from '@/data/characters';
 import type { MessageContent, ChatMessage } from '@/types/chat';
-import Web3 from 'web3';
 import { MessageTrackerRef } from '@/components/LocalMessageTracker';
 import { MessageStats } from '@/types/messageStore';
-import CharacterAccessControl from '@/components/CharacterAccessControl';
-
+import { ChatCompletionPopup } from '../ChatCompletionPopup';
+import  CharacterAccessControl from '../CharacterAccessControl';
 export function ChatInterface() {
   // Core state management
   const { selectedCharacter, messages, happiness, currentScene, actions } = useChatStore();
@@ -29,15 +29,21 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showEndPopup, setShowEndPopup] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [currentVideo, setCurrentVideo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
 
+  // Add state for exit confirmation dialog
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
   // Access control state
   const [hasAccess, setHasAccess] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
 
   // Message tracking state
   const [messageStats, setMessageStats] = useState<MessageStats>({
@@ -91,7 +97,7 @@ export function ChatInterface() {
   
     // Just check access if we have a wallet connection
     checkAccess();
-  }, [address, selectedCharacter]);;
+  }, [address, selectedCharacter]);
 
   // Listen for access status changes
   useEffect(() => {
@@ -122,19 +128,22 @@ export function ChatInterface() {
       window.removeEventListener('accessStatusChanged', handleAccessChange);
       window.removeEventListener('chatCompleted', handleChatCompleted);
     };
-  }, [selectedCharacter, address]);;
-
-  if (isCheckingAccess) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Verifying access...</div>
-      </div>
-    );
-  }
-
+  }, [selectedCharacter, address]);
 
   const handleAccessGranted = () => {
+    // Only update component state - the chat reset happens in the access control component
     setHasAccess(true);
+    
+    // If you need additional reset logic here:
+    if (selectedCharacter) {
+      // Get the initial scene for this character
+      const initialScene = character?.scenes[1];
+      if (initialScene && initialScene.initial) {
+        // Reset to first message from character
+        actions.reset();
+        actions.selectCharacter(selectedCharacter);
+      }
+    }
   };
 
   // Audio playback management
@@ -316,78 +325,127 @@ export function ChatInterface() {
     }
   };
   
+  // Handler for Back button in ChatHeader - shows confirmation dialog
+  const handleBackClick = () => {
+    setShowExitConfirmation(true);
+    setPendingNavigation(`/chat/${character?.language}`);
+  };
+
+  // Handler for completing a chat - no confirmation needed since this is expected
   const handleEndChat = () => {
-    setShowEndPopup(false);
+    // IMPORTANT: Never call blockchain methods here
     
     if (selectedCharacter && address) {
-      // ONLY update local state - no blockchain calls
+      // 1. Only update local storage - NO blockchain calls
+      const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+      localStorage.removeItem(accessKey);
+      
+      // 2. Set local state
+      setShowEndPopup(false);
+
       setHasAccess(false);
       
-      // Update local storage directly
-      const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
-      try {
-        // Mark as completed in local storage only
-        const storedData = localStorage.getItem(accessKey);
-        if (storedData) {
-          const accessData = JSON.parse(storedData);
-          accessData.completed = true;
-          accessData.hasAccess = false;
-          localStorage.setItem(accessKey, JSON.stringify(accessData));
-        }
-      } catch (e) {
-        // If error, just remove the item
-        localStorage.removeItem(accessKey);
-      }
-      
-      // Manually dispatch events to update UI
-      window.dispatchEvent(new CustomEvent('chatCompleted', {
-        detail: { characterId: selectedCharacter }
+      // 3. Show completion popup
+      setShowEndPopup(true);
+      setShowCompletionPopup(true);
+
+      // 4. Dispatch UI update events
+      window.dispatchEvent(new CustomEvent('accessStatusChanged', { 
+        detail: { 
+          characterId: selectedCharacter,
+          hasAccess: false 
+        } 
       }));
-      
-      // Navigate away
-      router.push(`/chat/${character?.language}`);
-    } else {
-      router.push('/');
     }
+    
+    // Critical: Don't navigate away here - let the popup handle navigation
   };
   
 
+  // 3. Modified access check UI - show purchase and return buttons
+  // Replace the isCheckingAccess section with:
+  if (!hasAccess && selectedCharacter) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <h1 className="text-3xl font-bold text-white mb-2 text-center">Access Required</h1>
+          <p className="text-gray-300 mb-6 text-center">
+            You need to pay 10 LBAI tokens to chat with {character?.name || 'this character'}.
+          </p>
+          
+          {/* Use either your updated CharacterAccessControl or the new EnhancedAccessControl */}
+          <CharacterAccessControl
+            characterId={selectedCharacter}
+            onAccessGranted={handleAccessGranted}
+            className="w-full"
+          />
+        </div>
+      </div>
+    );
+  }
+  
+
+  // Handler for the return to selection screen - shows confirmation
   const handleReturnToSelection = () => {
-    router.push(`/chat/${character?.language || ''}`);
+    setShowExitConfirmation(true);
+    setPendingNavigation(`/chat/${character?.language || ''}`);
+  };
+
+  // Confirm exit handlers
+  const handleConfirmExit = () => {
+    if (selectedCharacter && address) {
+      // Immediately remove access in local storage
+      const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+      localStorage.removeItem(accessKey);
+      
+      // Update UI by dispatching events
+      window.dispatchEvent(new CustomEvent('accessStatusChanged', {
+        detail: { 
+          characterId: selectedCharacter,
+          hasAccess: false
+        }
+      }));
+      
+      setHasAccess(false);
+    }
+    
+    // Close dialog and navigate immediately
+    setShowExitConfirmation(false);
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+    }
+  };
+  
+  
+  const handleStayInChat = () => {
+    setShowExitConfirmation(false);
+    setPendingNavigation(null);
   };
 
   // Render loading state
   if (isCheckingAccess) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Verifying access...</div>
-      </div>
-    );
-  }
-
-  // Render access control if user doesn't have access
-if (!hasAccess && selectedCharacter) {
-  return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Access Required</h1>
-          <p className="text-gray-300 mb-6">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-xl p-8">
+          <h1 className="text-3xl font-bold text-white mb-4 text-center">Access Required</h1>
+          <p className="text-gray-300 mb-8 text-center">
             You need to pay 10 LBAI tokens to chat with {character?.name || 'this character'}.
           </p>
-            
-            <CharacterAccessControl
-              characterId={selectedCharacter}
-              onAccessGranted={handleAccessGranted}
-              className="w-full"
-            />
+          
+          <div className="flex flex-col gap-4">
+            <Button
+              onClick={() => router.push(`/chat/${character?.language}/${selectedCharacter}`)}
+              className="bg-green-600 hover:bg-green-700 text-white py-3"
+            >
+              Purchase Access
+            </Button>
             
             <Button
               variant="outline"
-              onClick={handleReturnToSelection}
-              className="mt-6 text-white border-gray-600 hover:bg-gray-700"
+              onClick={() => router.push(`/chat/${character?.language}`)}
+              className="text-white border-gray-600 hover:bg-gray-700"
             >
-              Return to Selection
+              Return to CharacterSelection
             </Button>
           </div>
         </div>
@@ -395,17 +453,44 @@ if (!hasAccess && selectedCharacter) {
     );
   }
 
+  // Render access control if user doesn't have access
+  if (!hasAccess && selectedCharacter) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">Access Required</h1>
+            <p className="text-gray-300 mb-6">
+              You need to pay 10 LBAI tokens to chat with {character?.name || 'this character'}.
+            </p>
+              
+              <CharacterAccessControl
+                characterId={selectedCharacter}
+                onAccessGranted={handleAccessGranted}
+                className="w-full"
+              />
+              
+              <Button
+                variant="outline"
+                onClick={handleReturnToSelection}
+                className="mt-6 text-white border-gray-600 hover:bg-gray-700"
+              >
+                Return to Character Selection
+              </Button>
+            </div>
+          </div>
+        </div>
+    );
+  }
+
   return (
     <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
       <ChatHeader
-  characterName={character?.name || ''}
-  happiness={happiness[selectedCharacter || ''] || 50}
-  characterId={selectedCharacter || ''}
-  onBack={() => {
-    // Simple navigation, no blockchain calls
-    router.push(`/chat/${character?.language}`);
-  }}
-/>
+        characterName={character?.name || ''}
+        happiness={happiness[selectedCharacter || ''] || 50}
+        characterId={selectedCharacter || ''}
+        onBack={handleBackClick} 
+      />
 
       {showError && error && (
         <Alert variant="destructive" className="mx-4 mt-4">
@@ -481,24 +566,51 @@ if (!hasAccess && selectedCharacter) {
         </div>
       </div>
 
+      {/* End chat popup dialog */}
       {showEndPopup && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div className="bg-white p-8 rounded-lg shadow-xl text-center transform scale-100 transition-transform duration-300 ease-in-out">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800">Conversation Ended</h2>
-      <p className="mb-6 text-gray-600">Thank you for participating!</p>
+  <ChatCompletionPopup 
+    language={character?.language}
+    onClose={() => {
+      setShowEndPopup(false);
+      router.push(`/chat/${character?.language}`);
+    }}
+  />
+)}
+
+{showCompletionPopup && (
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+    <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
+      <div className="w-20 h-20 bg-green-500 rounded-full mx-auto flex items-center justify-center mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      
+      <h2 className="text-3xl font-bold text-white mb-4">Chat Completed!</h2>
+      <p className="text-gray-300 mb-8">
+        Thank you for participating in this conversation. We hope you enjoyed the experience!
+      </p>
+      
       <Button
         onClick={() => {
-          setShowEndPopup(false);
-          router.push(`/chat/${character?.language}`);
+          setShowCompletionPopup(false);
+          router.push(`/chat/${character?.language || 'chinese'}`);
         }}
-        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2 px-4 rounded-full shadow-lg transition-colors duration-300"
+        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-3 px-8 rounded-full text-lg shadow-lg"
       >
         Back to Tutors
       </Button>
     </div>
   </div>
 )}
+
+      {/* Exit confirmation dialog */}
+      <ConfirmExitDialog
+      open={showExitConfirmation}
+      onClose={() => setShowExitConfirmation(false)}
+      onConfirmExit={handleConfirmExit}
+      onStayInChat={handleStayInChat}
+    />
     </Card>
   );
 }
-// src/components/ChatInterface/index.tsx

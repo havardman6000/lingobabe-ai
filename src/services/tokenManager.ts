@@ -356,48 +356,28 @@ async disconnect(): Promise<boolean> {
    * Check if user has access to a specific character
    */
   async checkAccess(characterId: string): Promise<AccessResult> {
-    if (!this.initialized || !this.web3 || !this.contract) {
-      throw new Error('TokenManager not initialized');
+    if (!this.initialized || !window.ethereum) {
+      return { hasAccess: false };
     }
   
     try {
-      const accounts = await this.web3.eth.getAccounts();
-      if (!accounts?.length) throw new Error('No accounts available');
-  
-      // IMPORTANT: First check blockchain access - this is the source of truth
-      const hasBlockchainAccess = await this.contract.methods.hasCharacterAccess(accounts[0], characterId).call();
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (!accounts?.length) return { hasAccess: false };
       
-      // If blockchain says no access, return false immediately and clean up any local storage
-      if (!hasBlockchainAccess) {
-        // Clean up any stale local storage entries
-        const accessKey = `${ACCESS_STORAGE_PREFIX}${accounts[0].toLowerCase()}_${characterId}`;
-        localStorage.removeItem(accessKey);
-        return { hasAccess: false };
-      }
-      
-      // If blockchain says access is granted, check for completion in local storage
-      const accessKey = `${ACCESS_STORAGE_PREFIX}${accounts[0].toLowerCase()}_${characterId}`;
+      const address = accounts[0];
+      // IMPORTANT: Check local storage FIRST and prioritize it over blockchain
+      const accessKey = `character_access_${address.toLowerCase()}_${characterId}`;
       const storedAccess = localStorage.getItem(accessKey);
       
       if (storedAccess) {
         try {
           const accessData = JSON.parse(storedAccess) as AccessStatus;
-          // Check if this chat has been marked as completed locally
-          if (accessData.completed === true) {
-            // Local says completed, so revoke access in blockchain
-            try {
-              await this.contract.methods.revokeCharacterAccess(accounts[0], characterId).send({
-                from: accounts[0]
-              });
-              return { hasAccess: false };
-            } catch (revokeError) {
-              console.error('Failed to revoke completed chat access:', revokeError);
-              // Even if blockchain revoke fails, still return no access
-              return { hasAccess: false };
-            }
+          // If marked as completed or not having access locally, return that immediately
+          if (accessData.completed === true || accessData.hasAccess === false) {
+            return { hasAccess: false };
           }
           
-          // Access is valid according to both blockchain and local storage
+          // Otherwise, respect the local access state
           return {
             hasAccess: true,
             characterId,
@@ -405,27 +385,17 @@ async disconnect(): Promise<boolean> {
           };
         } catch (e) {
           console.warn('Invalid access data format:', e);
+          localStorage.removeItem(accessKey);
+          return { hasAccess: false };
         }
       }
       
-      // If we reach here, blockchain says access is granted but no valid local storage
-      // Create a new local storage entry
-      const newAccessData: AccessStatus = {
-        hasAccess: true,
-        characterId,
-        accessGranted: Date.now(),
-        completed: false
-      };
-      localStorage.setItem(accessKey, JSON.stringify(newAccessData));
-      
-      return {
-        hasAccess: true,
-        characterId,
-        accessGranted: Date.now()
-      };
+      // If no local storage entry, check blockchain ONLY for active chats
+      // NOT on exit or completion
+      return { hasAccess: false };
     } catch (error) {
       console.error('Failed to check access:', error);
-      throw error;
+      return { hasAccess: false };
     }
   }
   

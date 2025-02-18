@@ -4,8 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AccessStatus } from '@/types/accessStatus';
 import { useRouter } from 'next/navigation';
+import { useChatStore } from '@/store/chatStore';
 
 interface CharacterAccessControlProps {
+  characterId: string;
+  onAccessGranted: () => void;
+  className?: string;
+}
+interface EnhancedAccessControlProps {
   characterId: string;
   onAccessGranted: () => void;
   className?: string;
@@ -24,6 +30,8 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
   const [accessCost, setAccessCost] = useState(10);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const router = useRouter();
+
+  const { actions } = useChatStore();
 
   // Check if user has access to this character - default to NO ACCESS
   useEffect(() => {
@@ -173,20 +181,25 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
     setIsPaying(true);
 
     try {
+      actions.reset();
+      actions.selectCharacter(characterId);
       // Double-check current access status
       const currentStatus = await window.tokenManager.checkAccess(characterId);
       if (currentStatus.hasAccess) {
         // Already has access, just proceed
         setHasAccess(true);
         setShowSuccessMessage(true);
-        await refreshTokenBalance();
 
         setTimeout(() => {
           onAccessGranted();
         }, 2000);
         return;
       }
-      
+      const currentBalance = await window.tokenManager.getBalance(address);
+      if (parseFloat(currentBalance) < accessCost) {
+        throw new Error(`Insufficient LBAI tokens. You need at least ${accessCost} LBAI to access this chat.`);
+      }
+
       // Process payment
       const result = await window.tokenManager.payForAccess(characterId);
       
@@ -194,10 +207,24 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
         // Verify access was actually granted
         const verifyResult = await window.tokenManager.checkAccess(characterId); 
         if (verifyResult.hasAccess) {
+          
+          const accessKey = `character_access_${address.toLowerCase()}_${characterId}`;
+          const accessData: AccessStatus = {
+            hasAccess: true,
+            characterId,
+            accessGranted: Date.now(),
+            completed: false
+          };
+          localStorage.setItem(accessKey, JSON.stringify(accessData));
           await refreshBalance();
 
           setHasAccess(true);
           setShowSuccessMessage(true);
+
+          window.dispatchEvent(new CustomEvent('accessStatusChanged', {
+            detail: accessData
+          }));
+
           setTimeout(() => {
             onAccessGranted();
           }, 2000);
@@ -214,7 +241,14 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
       setIsPaying(false);
     }
   };
-
+const handleReturnToSelection = () => {
+  // Determine language from character ID
+  const language = characterId.substring(0, 2) === 'me' ? 'chinese' : 
+                  characterId.substring(0, 2) === 'ao' ? 'japanese' :
+                  characterId.substring(0, 2) === 'ji' ? 'korean' : 'spanish';
+  
+  router.push(`/chat/${language}`);
+};
   // If already has access or still checking, show appropriate UI
   if (isChecking) {
     return (
@@ -257,10 +291,10 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
       
       <div className="text-center mb-6">
         <p className="text-gray-300 mb-2">
-          This chat requires a one-time payment of <span className="font-bold text-green-400">{accessCost} LBAI</span> tokens.
+        This chat requires a payment of <span className="font-bold text-green-400">{accessCost} LBAI</span> tokens.
         </p>
         <p className="text-gray-400 text-sm mb-4">
-          Once paid, you'll have access to this chat until completion.
+        Each new chat session requires a separate payment.
         </p>
         
         <div className="bg-gray-700 p-3 rounded mb-4">
@@ -276,7 +310,15 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
         >
           {isPaying ? 'Processing Payment...' : `Pay ${accessCost} LBAI to Start Chat`}
         </Button>
-        
+        <Button 
+          onClick={handleReturnToSelection}
+          variant="outline"
+          className="w-full text-white border-gray-600 hover:bg-gray-700 mt-2"
+          disabled={isPaying}
+        >
+          Return to Character Selection
+        </Button>
+
         {parseFloat(balance || '0') < accessCost && (
           <Alert className="mt-2 bg-blue-900 border-blue-700 text-blue-100">
             <div className="flex flex-col space-y-3">
@@ -302,3 +344,4 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
 };
 
 export default CharacterAccessControl;
+// src/components/CharacterAccessControl/index.tsx

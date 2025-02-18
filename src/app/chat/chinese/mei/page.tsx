@@ -171,13 +171,7 @@ export default function MeiChatPage() {
           />
           
           <div className="mt-6 text-center">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              className="text-white border-gray-600 hover:bg-gray-700"
-            >
-              Back to Character Selection
-            </Button>
+           
           </div>
         </div>
       </div>
