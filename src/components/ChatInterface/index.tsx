@@ -1,3 +1,4 @@
+// src/components/ChatInterface/index.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -12,65 +13,10 @@ import { useChatStore } from '@/store/chatStore';
 import { useWeb3 } from '@/components/providers/web3-provider';
 import { characters, isValidCharacterId } from '@/data/characters';
 import type { MessageContent, ChatMessage } from '@/types/chat';
-import { messageStore } from '@/services/messageStore';
-import HappinessTracker from '../EnhancedHappinessTracker';
-import { MessageMenu } from './MessageMenu';
 import Web3 from 'web3';
-import LocalMessageTracker, { MessageTrackerRef } from '../LocalMessageTracker';
-import MessageUsageDisplay from '../MessageUsageDisplay';
+import { MessageTrackerRef } from '@/components/LocalMessageTracker';
 import { MessageStats } from '@/types/messageStore';
-
-const MESSAGES_PER_PACKAGE = 50;
-
-interface MessagingControlsProps {
-  onSend: () => void;
-  disabled: boolean;
-  input: string;
-  setInput: (input: string) => void;
-}
-
-interface MessageStatsProps {
-  stats: MessageStats;
-  onPurchase: () => void;
-  className?: string;
-}
-
-const MessagingControls: React.FC<MessagingControlsProps> = ({
-  onSend,
-  disabled,
-  input,
-  setInput
-}) => {
-  return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-800 p-4 rounded-lg shadow-lg">
-      <div className="flex items-center space-x-4">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1 bg-gray-700 border-gray-600 text-white"
-          onKeyDown={(e) => e.key === 'Enter' && !disabled && onSend()}
-          disabled={disabled}
-        />
-        <Button
-          onClick={onSend}
-          className="bg-green-600 hover:bg-green-700 text-white"
-          disabled={disabled}
-        >
-          Send
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const MessageStatsDisplay: React.FC<MessageStatsProps> = ({ stats, onPurchase, className = "" }) => {
-  return (
-    <div className={`absolute top-4 right-4 z-50 flex items-center gap-4 ${className}`}>
-      <MessageUsageDisplay stats={stats} onPurchase={onPurchase} />
-    </div>
-  );
-};
+import CharacterAccessControl from '@/components/CharacterAccessControl';
 
 export function ChatInterface() {
   // Core state management
@@ -89,10 +35,14 @@ export function ChatInterface() {
   const [error, setError] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
 
+  // Access control state
+  const [hasAccess, setHasAccess] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+
   // Message tracking state
   const [messageStats, setMessageStats] = useState<MessageStats>({
     messagesUsed: 0,
-    messagesRemaining: MESSAGES_PER_PACKAGE,
+    messagesRemaining: 0,
     packagesPurchased: 0
   });
 
@@ -111,39 +61,54 @@ export function ChatInterface() {
     }, 5000);
   };
 
+  // Initialize token manager and check access
   useEffect(() => {
-    const initializeTokenManager = async () => {
-      if (window.ethereum && address && window.tokenManager) {
-        try {
+    const initialize = async () => {
+      if (!window.ethereum || !address) {
+        setIsCheckingAccess(false);
+        return;
+      }
+
+      try {
+        // Initialize token manager if needed
+        if (window.tokenManager && !window.tokenManager.initialized) {
           const web3 = new Web3(window.ethereum);
           await window.tokenManager.initialize(web3);
-          console.log('TokenManager initialized successfully');
-
-          const allowance = await window.tokenManager.checkTokenAllowance();
-          console.log('Token allowance:', allowance);
-        } catch (error) {
-          console.error('Failed to initialize TokenManager:', error);
-          showErrorMessage('Failed to connect to wallet. Please try again.');
         }
+
+        // Check access if we have a selected character
+        if (selectedCharacter && window.tokenManager?.initialized) {
+          const accessResult = await window.tokenManager.checkAccess(selectedCharacter);
+          setHasAccess(accessResult.hasAccess);
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+        showErrorMessage('Failed to connect to wallet or verify access.');
+      } finally {
+        setIsCheckingAccess(false);
       }
     };
 
-    initializeTokenManager();
-  }, [address]);
+    initialize();
+  }, [address, selectedCharacter]);
 
-  const handlePurchasePackage = async () => {
-    if (!window.tokenManager || !address) {
-      showErrorMessage('Wallet not connected');
-      return;
-    }
+  // Listen for access status changes
+  useEffect(() => {
+    const handleAccessChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{characterId: string, hasAccess: boolean}>;
+      if (customEvent.detail?.characterId === selectedCharacter) {
+        setHasAccess(customEvent.detail.hasAccess);
+      }
+    };
+    
+    window.addEventListener('accessStatusChanged', handleAccessChange);
+    return () => {
+      window.removeEventListener('accessStatusChanged', handleAccessChange);
+    };
+  }, [selectedCharacter]);
 
-    try {
-      await window.tokenManager.purchaseMessagePackage();
-      const newStats = await messageStore.getStats(address);
-      setMessageStats(newStats);
-    } catch (error: any) {
-      showErrorMessage(error.message || 'Failed to purchase package');
-    }
+  const handleAccessGranted = () => {
+    setHasAccess(true);
   };
 
   // Audio playback management
@@ -208,11 +173,6 @@ export function ChatInterface() {
       return;
     }
   
-    if (messageTracker.current && !messageTracker.current.canSendMessage()) {
-      showErrorMessage('You have no messages remaining. Please purchase more messages.');
-      return;
-    }
-  
     try {
       const selectedOption = currentSceneOptions.find(opt => {
         const primaryText = opt.chinese || opt.japanese || opt.korean || opt.spanish;
@@ -221,20 +181,6 @@ export function ChatInterface() {
   
       if (!selectedOption) {
         showErrorMessage('Please select a valid response option');
-        return;
-      }
-  
-      // Use local message tracking instead of blockchain transaction
-      if (messageTracker.current) {
-        await messageTracker.current.handleMessageSent();
-      }
-  
-      // Update local stats using messageStore
-      const newStats = await messageStore.useMessage(address);
-      if (newStats) {
-        setMessageStats(newStats);
-      } else {
-        showErrorMessage('Failed to send message. No messages remaining.');
         return;
       }
   
@@ -263,7 +209,7 @@ export function ChatInterface() {
         const newHappiness = Math.min(100, Math.max(0, currentHappiness + selectedOption.points));
         localStorage.setItem(happinessKey, newHappiness.toString());
       }
-  
+
       if (selectedOption.response) {
         actions.addMessage({
           role: 'assistant',
@@ -296,6 +242,10 @@ export function ChatInterface() {
         }, 1000);
       } else {
         setShowEndPopup(true);
+        // Clear access since chat is completed
+        if (window.tokenManager?.initialized) {
+          window.tokenManager.markChatCompleted(selectedCharacter);
+        }
         localStorage.removeItem(`scene_${selectedCharacter}_${address.toLowerCase()}`);
       }
   
@@ -310,27 +260,48 @@ export function ChatInterface() {
     }
   };
 
-  const checkTokenStatus = async () => {
-    if (!window.tokenManager || !address) return;
-
-    try {
-      const balance = await window.tokenManager.getBalance(address);
-      const allowance = await window.tokenManager.checkTokenAllowance();
-      console.log('Token Status:', {
-        balance,
-        allowance,
-        initialized: window.tokenManager.initialized
-      });
-    } catch (error) {
-      console.error('Token status check failed:', error);
-    }
+  const handleReturnToSelection = () => {
+    router.push(`/chat/${character?.language || ''}`);
   };
 
-  useEffect(() => {
-    if (address) {
-      checkTokenStatus();
-    }
-  }, [address]);
+  // Render loading state
+  if (isCheckingAccess) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl animate-pulse">Verifying access...</div>
+      </div>
+    );
+  }
+
+  // Render access control if user doesn't have access
+  if (!hasAccess && selectedCharacter) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">Access Required</h1>
+            <p className="text-gray-300 mb-6">
+              You need to pay 10 LBAI tokens to chat with {character?.name || 'this character'}.
+            </p>
+            
+            <CharacterAccessControl
+              characterId={selectedCharacter}
+              onAccessGranted={handleAccessGranted}
+              className="w-full"
+            />
+            
+            <Button
+              variant="outline"
+              onClick={handleReturnToSelection}
+              className="mt-6 text-white border-gray-600 hover:bg-gray-700"
+            >
+              Return to Selection
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
@@ -369,17 +340,6 @@ export function ChatInterface() {
               />
             </div>
           ))}
-        </div>
-
-        <div className="fixed bottom-24 right-4 z-50">
-            <LocalMessageTracker
-    ref={messageTracker}
-    onUpdate={useCallback((stats: MessageStats) => {
-      if (JSON.stringify(stats) !== JSON.stringify(messageStats)) {
-        setMessageStats(stats);
-      }
-    }, [messageStats])}
-  />
         </div>
       </div>
 
@@ -423,10 +383,6 @@ export function ChatInterface() {
             </div>
           )}
         </div>
-
-        {messageStats && (
-          <MessageStatsDisplay stats={messageStats} onPurchase={handlePurchasePackage} />
-        )}
       </div>
 
       {showEndPopup && (
@@ -449,4 +405,3 @@ export function ChatInterface() {
     </Card>
   );
 }
-// src/components/ChatInterface/index.tsx
