@@ -16,6 +16,10 @@ export default function FaucetPage() {
     setIsLoading(true);
     setError(null);
     try {
+      if (!window.tokenManager || !window.tokenManager.initialized) {
+        throw new Error('Token manager not initialized');
+      }
+      
       await window.tokenManager.claimFaucet();
       setSuccess(true);
       setTimeout(() => {

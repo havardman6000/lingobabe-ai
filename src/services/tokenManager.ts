@@ -38,7 +38,7 @@ class TokenManager {
   public initialized: boolean = false;
   private web3: Web3 | null = null;
   private contract: Contract | null = null;
-  private readonly contractAddress: string = '0x6D7C11bBFeE16e49C2545501D4aC548F0a6EB05B';
+  private readonly contractAddress: string = '0x00b8A3cFa8EA5278b30400E887d118beC436ddC8';
   private readonly signatureKey = 'monad_explorer_signature';
   private readonly walletConnectedKey = 'walletConnected';
   private readonly userAddressKey = 'userAddress';
@@ -272,15 +272,15 @@ class TokenManager {
     if (!this.initialized || !this.contract || !this.web3) {
       throw new Error('TokenManager not initialized');
     }
-
+  
     try {
       const accounts = await this.web3.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
-
+  
       const result = await this.contract.methods.claimFaucet().send({
         from: accounts[0]
       });
-
+  
       return {
         success: true,
         hash: result.transactionHash

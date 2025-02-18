@@ -158,55 +158,39 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const connect = useCallback(async () => {
     setError(null);
     setIsLoading(true);
-
+  
     try {
       console.log('Connecting to Web3Provider...');
       if (!isMetaMaskInstalled) {
         throw new Error('Please install MetaMask to continue');
       }
-
-      // First switch to the correct network
-      await switchToMonadTestnet();
-      console.log('Switched to Monad Testnet.');
-
-      // Then request account access - this triggers the MetaMask popup
+  
+      // First check if the chain is correct
+      try {
+        const chainId = await window.ethereum?.request({ method: 'eth_chainId' });
+        if (chainId !== '0x279f') { // 0x279f is hex for 10143
+          // Try to switch to the correct network
+          await switchToMonadTestnet();
+        }
+      } catch (chainError) {
+        console.error('Chain verification error:', chainError);
+        // Continue anyway, switchToMonadTestnet will handle adding the network
+      }
+  
+      // Then request account access
       const accounts = await window.ethereum?.request({
         method: 'eth_requestAccounts'
       }) as string[];
-
+  
       if (!accounts || accounts.length === 0) {
         throw new Error('Please connect your MetaMask wallet');
       }
-
-      // Verify connection was successful
-      const isValid = await validateConnection();
-      if (!isValid) {
-        throw new Error('Failed to connect to Monad network');
-      }
-
+  
       // Set address before updating info
       setAddress(accounts[0]);
-
-      // Important: Migrate message counts from global storage to address-specific storage
-      if (typeof messageStore !== 'undefined' &&
-          messageStore &&
-          typeof messageStore.migrateStatsToAddress === 'function') {
-        try {
-          messageStore.migrateStatsToAddress(accounts[0]);
-        } catch (migrateError) {
-          console.warn('Failed to migrate message stats:', migrateError);
-          // Continue connection process even if migration fails
-        }
-      }
-
       await updateUserInfo(accounts[0]);
       console.log('Web3Provider connected successfully.');
-
-      // Ensure we don't redirect to home after successful connection
-      const currentPath = window.location.pathname;
-      if (currentPath === '/') {
-        router.push('/language-selector');
-      }
+  
     } catch (error: any) {
       console.error('Connection error in Web3Provider:', error);
       setError(error.message || 'Failed to connect wallet');
@@ -217,7 +201,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       console.log('Web3Provider connection process complete.');
       setIsLoading(false);
     }
-  }, [isMetaMaskInstalled, router, updateUserInfo]);
+  }, [isMetaMaskInstalled, updateUserInfo]);
 
   const disconnect = useCallback(async () => {
     try {

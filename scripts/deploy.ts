@@ -9,9 +9,9 @@ async function main() {
   const token = await LingobabeTokenV2.deploy();
   
   // Wait for deployment to finish
-  await token.deployed();
+  await token.waitForDeployment();
   
-  console.log("LingobabeTokenV2 deployed to:", token.address);
+  console.log("LingobabeTokenV2 deployed to:", await token.getAddress());
 }
 
 // Run the deployment
