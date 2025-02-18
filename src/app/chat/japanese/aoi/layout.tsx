@@ -25,7 +25,6 @@ export default function AoiLayout({
 
   return (
     <div className="min-h-screen">
-      <EnhancedWalletConnector />
       {children}
     </div>
   );

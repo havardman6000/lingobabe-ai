@@ -184,6 +184,7 @@ export function ChatInterface() {
         return;
       }
   
+      // Add user message to the chat (this is local, not blockchain)
       const messageContent: MessageContent = {
         english: selectedOption.english,
         chinese: selectedOption.chinese,
@@ -201,15 +202,16 @@ export function ChatInterface() {
         content: messageContent
       });
   
+      // Update happiness locally, no blockchain needed here
       if (typeof selectedOption.points === 'number') {
         actions.updateHappiness(selectedCharacter, selectedOption.points);
-  
         const happinessKey = `lingobabe_happiness_${address.toLowerCase()}_${selectedCharacter}`;
         const currentHappiness = happiness[selectedCharacter] || 50;
         const newHappiness = Math.min(100, Math.max(0, currentHappiness + selectedOption.points));
         localStorage.setItem(happinessKey, newHappiness.toString());
       }
-
+  
+      // Add assistant response if available
       if (selectedOption.response) {
         actions.addMessage({
           role: 'assistant',
@@ -229,24 +231,26 @@ export function ChatInterface() {
         }
       }
   
-      if (currentScene < 5) {
+      // Progress to the next scene (local state change, no blockchain needed)
+      if (currentScene >= 5) {
+        setShowEndPopup(true);
+        // Mark as completed in local storage only
+        if (window.tokenManager && selectedCharacter) {
+          window.tokenManager.markChatCompleted(selectedCharacter);
+        }
+        localStorage.removeItem(`scene_${selectedCharacter}_${address.toLowerCase()}`);
+      } else {
+        // Continue to next scene - DON'T end the chat
         setIsTransitioning(true);
-  
+      
         localStorage.setItem(`scene_${selectedCharacter}_${address.toLowerCase()}`,
           (currentScene + 1).toString()
         );
-  
+      
         setTimeout(() => {
           actions.setScene(currentScene + 1);
           setIsTransitioning(false);
         }, 1000);
-      } else {
-        setShowEndPopup(true);
-        // Clear access since chat is completed
-        if (window.tokenManager?.initialized) {
-          window.tokenManager.markChatCompleted(selectedCharacter);
-        }
-        localStorage.removeItem(`scene_${selectedCharacter}_${address.toLowerCase()}`);
       }
   
       setInput('');
@@ -306,10 +310,11 @@ export function ChatInterface() {
   return (
     <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
       <ChatHeader
-        characterName={character?.name || ''}
-        happiness={happiness[selectedCharacter || ''] || 50}
-        onBack={() => router.push(`/chat/${character?.language}`)}
-      />
+      characterName={character?.name || ''}
+      happiness={happiness[selectedCharacter || ''] || 50}
+      characterId={selectedCharacter || ''}
+      onBack={() => router.push(`/chat/${character?.language}`)}
+    />
 
       {showError && error && (
         <Alert variant="destructive" className="mx-4 mt-4">
@@ -386,22 +391,22 @@ export function ChatInterface() {
       </div>
 
       {showEndPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded shadow-lg text-center">
-            <h2 className="text-2xl font-bold mb-4">Conversation Ended</h2>
-            <p className="mb-4">Thank you for participating!</p>
-            <Button
-              onClick={() => {
-                setShowEndPopup(false);
-                router.push(`/chat/${character?.language}`);
-              }}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              Back to Tutors
-            </Button>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div className="bg-white p-8 rounded-lg shadow-xl text-center transform scale-100 transition-transform duration-300 ease-in-out">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">Conversation Ended</h2>
+      <p className="mb-6 text-gray-600">Thank you for participating!</p>
+      <Button
+        onClick={() => {
+          setShowEndPopup(false);
+          router.push(`/chat/${character?.language}`);
+        }}
+        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2 px-4 rounded-full shadow-lg transition-colors duration-300"
+      >
+        Back to Tutors
+      </Button>
+    </div>
+  </div>
+)}
     </Card>
   );
 }

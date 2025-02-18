@@ -1,6 +1,7 @@
 // src/app/chat/japanese/page.tsx
 'use client'
 
+import { BackButton } from '@/components/BackButton'
 import { TutorSelect } from '@/components/TutorSelect'
 import { useWeb3 } from '@/components/providers/web3-provider'
 import { useRouter } from 'next/navigation'
@@ -19,9 +20,13 @@ export default function JapaneseTutorPage() {
   if (!isConnected) {
     return null
   }
+  const disabledTutors = ['Aya', 'Misa']; // List of disabled tutors
 
   return (
     <main className="min-h-screen bg-gradient-to-r from-red-50 to-pink-100 py-12">
+      <div className="fixed top-4 left-4 z-50">
+        <BackButton />
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
@@ -31,7 +36,7 @@ export default function JapaneseTutorPage() {
             Select a tutor to begin your Japanese learning journey
           </p>
         </div>
-        <TutorSelect language="japanese" />
+        <TutorSelect language="japanese" disabledTutors={disabledTutors}  />
       </div>
     </main>
   )

@@ -1,11 +1,306 @@
 import { Characters, Character, CharacterId } from '@/types/chat';
 export const characters: Characters = {
+  mei: {  
+    "id": "mei",
+    "name": "Mei",
+    "chineseName": "李美琳",
+    "description": "CULINARY HISTORIAN",
+    "image": "/tutors/mei_chinese.jpg",
+    "language": "chinese",
+    "scenes": {
+      "1": {
+        "initial": {
+          "chinese": "刚刚好，我正欣赏着这里的氛围——看来你的品味不错。",
+          "pinyin": "Gānggāng hǎo, wǒ zhèng xīnshǎng zhe zhèlǐ de fēnwèi——kànlái nǐ de pǐnwèi búcuò.",
+          "english": "Perfect timing. I was just admiring the ambiance—seems like you have good taste.",
+          "context": "Seated at a beautifully set table, she gracefully looks up as you arrive.",
+          "video": "https://i.imgur.com/BrQbplM.mp4"
+        },
+        "options": [
+          {
+            "id": "CN101",
+            "chinese": "我特意订了座位，今晚当然要享受最好的。",
+            "pinyin": "Wǒ tèyì dìngle zuòwèi, jīnwǎn dāngrán yào xiǎngshòu zuì hǎo de.",
+            "english": "I took the liberty of making a reservation. Only the best for tonight.",
+            "points": 12,
+            "video": "https://i.imgur.com/BrQbplM.mp4",
+            "response": {
+              "chinese": "懂得提前计划的男人——我喜欢。这很有自信。",
+              "pinyin": "Dǒngdé tíqián jìhuà de nánrén——wǒ xǐhuan. Zhè hěn yǒu zìxìn.",
+              "english": "A man who plans ahead—I like that. It shows confidence.",
+              "context": "Smiles approvingly, adjusting her napkin.",
+              "video": "https://i.imgur.com/5j1vaLL.mp4"
+            }
+          },
+          {
+            "id": "CN102",
+            "chinese": "希望这里的美食能配得上这氛围。",
+            "pinyin": "Xīwàng zhèlǐ de měishí néng pèi dé shàng zhè fēnwèi.",
+            "english": "I hope the food lives up to the atmosphere.",
+            "points": 9,
+            "video": "https://i.imgur.com/5j1vaLL.mp4",
+            "response": {
+              "chinese": "我也这么觉得。但完美的晚餐，不仅仅是食物而已。",
+              "pinyin": "Wǒ yě zhème juéde. Dàn wánměi de wǎncān, bù jǐnjǐn shì shíwù éryǐ.",
+              "english": "I have a feeling it will. But a perfect dinner is more than just the food.",
+              "context": "Glances at the menu, intrigued.",
+              "video": "https://i.imgur.com/EocKrHD.mp4"
+            }
+          },
+          {
+            "id": "CN103",
+            "chinese": "说实话？我只是跟着网上的好评来的。",
+            "pinyin": "Shuō shíhuà? Wǒ zhǐshì gēnzhe wǎngshàng de hǎopíng lái de.",
+            "english": "Honestly? I just followed the best reviews online.",
+            "points": 6,
+            "video": "https://i.imgur.com/EocKrHD.mp4",
+            "response": {
+              "chinese": "很务实的做法。那么，你是那种相信评论的人，还是喜欢自己去发现新地方？",
+              "pinyin": "Hěn wùshí de zuòfǎ. Nàme, nǐ shì nà zhǒng xiāngxìn pínglùn de rén, háishì xǐhuan zìjǐ qù fāxiàn xīn dìfāng?",
+              "english": "Practical. So, do you always trust reviews, or do you like discovering places yourself?",
+              "context": "Raises an eyebrow, smirking.",
+              "video": "https://i.imgur.com/BrQbplM.mp4"
+            }
+          }
+        ],
+        "transition": "The waiter approaches with elegantly designed menus. A soft glow from the candlelight reflects off the glassware."
+      },
+      "2": {
+        "initial": {
+          "chinese": "我们先来点酒吧。你通常喜欢红酒、白酒，还是想尝试点特别的？",
+          "pinyin": "Wǒmen xiān lái diǎn jiǔ ba. Nǐ tōngcháng xǐhuan hóngjiǔ, báijiǔ, háishì xiǎng chángshì diǎn tèbié de?",
+          "english": "Let's start with a drink. Do you usually go for red, white, or something a little more exciting?",
+          "context": "Flicks her eyes toward the wine list, then back at you.",
+          "video": "https://i.imgur.com/G8NdFM9.mp4"
+        },
+        "options": [
+          {
+            "id": "CN201",
+            "chinese": "红酒，毫无疑问。一款经典的陈年佳酿总是最有魅力。",
+            "pinyin": "Hóngjiǔ, háowú yíwèn. Yī kuǎn jīngdiǎn de chénnián jiāniàng zǒng shì zuì yǒu mèilì.",
+            "english": "Red, always. There's something bold and timeless about a great vintage.",
+            "points": 12,
+            "video": "https://i.imgur.com/G8NdFM9.mp4",
+            "response": {
+              "chinese": "懂得欣赏深度和个性的男人——我欣赏。你有特别喜欢的产区吗？",
+              "pinyin": "Dǒngdé xīnshǎng shēndù hé gèxìng de nánrén——wǒ xīnshǎng. Nǐ yǒu tèbié xǐhuān de chǎnqū ma?",
+              "english": "A man who appreciates depth and character—I respect that. Any favorite regions?",
+              "context": "Nods approvingly, twirling the stem of her glass.",
+              "video": "https://i.imgur.com/DHrfRvR.mp4"
+            }
+          },
+          {
+            "id": "CN202",
+            "chinese": "白酒，尤其是清爽的那种，最适合放松。",
+            "pinyin": "Báijiǔ, yóuqí shì qīngshuǎng de nà zhǒng, zuì shìhé fàngsōng.",
+            "english": "White, especially something crisp and refreshing.",
+            "points": 10,
+            "video": "https://i.imgur.com/DHrfRvR.mp4",
+            "response": {
+              "chinese": "清爽又提神……这说明你喜欢轻松却又有品味的东西。",
+              "pinyin": "Qīngshuǎng yòu tíshén... zhè shuōmíng nǐ xǐhuan qīngsōng què yòu yǒu pǐnwèi de dōngxi.",
+              "english": "Crisp and refreshing... that tells me you like something easygoing, yet refined.",
+              "context": "Raises an eyebrow playfully.",
+              "video": "https://i.imgur.com/ByTHiAp.mp4"
+            }
+          },
+          {
+            "id": "CN203",
+            "chinese": "我喜欢尝试新鲜的选择，看看侍酒师会推荐什么。",
+            "pinyin": "Wǒ xǐhuan chángshì xīnxiān de xuǎnzé, kànkan shìjiǔshī huì tuījiàn shénme.",
+            "english": "I like to mix it up. Let's see what the sommelier recommends.",
+            "points": 11,
+            "video": "https://i.imgur.com/tZ8Azua.mp4",
+            "response": {
+              "chinese": "喜欢未知的惊喜？我喜欢。那我们就交给专业的来决定吧？",
+              "pinyin": "Xǐhuan wèizhī de jīngxǐ? Wǒ xǐhuan. Nà wǒmen jiù jiāo gěi zhuānyè de lái juédìng ba?",
+              "english": "A man who enjoys the thrill of the unknown—I like it. Shall we trust the expert, then?",
+              "context": "Smirks, intrigued.",
+              "video": "https://i.imgur.com/jhXd6g5.mp4"
+            }
+          }
+        ],
+        "transition": "The sommelier nods in approval, disappearing briefly before returning with a well-presented bottle."
+      },
+      "3": {
+        "initial": {
+          "chinese": "现在轮到今晚的真正主角——食物了。我希望你的品味不仅限于酒。",
+          "pinyin": "Xiànzài lúndào jīnwǎn de zhēnzhèng zhǔjiǎo——shíwù le. Wǒ xīwàng nǐ de pǐnwèi bú jǐnxiànyú jiǔ.",
+          "english": "Now, for the real star of the night—the food. I hope you have good taste beyond just wine.",
+          "context": "Glances at the menu, running her fingers along the edge of the page.",
+          "video": "https://i.imgur.com/uCOdXzm.mp4"
+        },
+        "options": [
+          {
+            "id": "CN301",
+            "chinese": "我总是选择主厨推荐，绝不会让人失望。",
+            "pinyin": "Wǒ zǒng shì xuǎnzé zhǔchú tuījiàn, jué bú huì ràng rén shīwàng.",
+            "english": "I always go for the chef's special—it never disappoints.",
+            "points": 12,
+            "video": "https://i.imgur.com/uCOdXzm.mp4",
+            "response": {
+              "chinese": "一个信任主厨的人——不错。我喜欢这种期待感。",
+              "pinyin": "Yīgè xìnrèn zhǔchú de rén——bùcuò. Wǒ xǐhuan zhè zhǒng qídài gǎn.",
+              "english": "A man who trusts the chef—I like that. There's something exciting about not knowing exactly what you're getting.",
+              "context": "Raises an intrigued eyebrow.",
+              "video": "https://i.imgur.com/Vl4dTsb.mp4"
+            }
+          },
+          {
+            "id": "CN302",
+            "chinese": "我喜欢牛排，经典、醇厚，而且总能令人满足。",
+            "pinyin": "Wǒ xǐhuān niúpái, jīngdiǎn, chúnhòu, érqiě zǒng néng lìng rén mǎnzú.",
+            "english": "I prefer a well-cooked steak. Classic, rich, and always satisfying.",
+            "points": 11,
+            "video": "https://i.imgur.com/S2Q0zNB.mp4",
+            "response": {
+              "chinese": "哦？喜欢牛排？让我猜猜——你一定是点五分熟，对吧？",
+              "pinyin": "Ó? Xǐhuan niúpái? Ràng wǒ cāicāi——nǐ yīdìng shì diǎn wǔ fēn shú, duì ba?",
+              "english": "A steak man? Let me guess—you like it medium rare, with just the right amount of sear.",
+              "context": "Smirks, leaning slightly forward.",
+              "video": "https://i.imgur.com/ovcNkXb.mp4"
+            }
+          },
+          {
+            "id": "CN303",
+            "chinese": "我相信你的选择，给我个惊喜吧。",
+            "pinyin": "Wǒ xiāngxìn nǐ de xuǎnzé, gěi wǒ gè jīngxǐ ba.",
+            "english": "I'll let you decide—surprise me.",
+            "points": 10,
+            "video": "https://i.imgur.com/JIIq1v3.mp4",
+            "response": {
+              "chinese": "愿意让我做决定？有趣，我喜欢。",
+              "pinyin": "Yuànyì ràng wǒ zuò juédìng? Yǒuqù, wǒ xǐhuan.",
+              "english": "A man who trusts a woman's choice? That's refreshing.",
+              "context": "Tilts her head, intrigued.",
+              "video": "https://i.imgur.com/DSGIYb5.mp4"
+            }
+          }
+        ],
+        "transition": "As your orders are taken, soft instrumental music plays in the background. The candlelight flickers, casting a warm glow over the table."
+      },
+      "4": {
+        "initial": {
+          "chinese": "现在告诉我一件我单凭外表猜不到的关于你的事？",
+          "pinyin": "Xiànzài gàosù wǒ yī jiàn wǒ dān píng wàibiǎo cāi bù dào de guānyú nǐ de shì?",
+          "english": "Now tell me—what's something about you I wouldn't guess just by looking at you?",
+          "context": "Resting her chin on her hand, she studies you with amused curiosity.",
+          "video": "https://i.imgur.com/q4oGjtu.mp4"
+        },
+        "options": [
+          {
+            "id": "CN401",
+            "chinese": "我会说三种语言，一直以来我都喜欢挑战自己掌握新的语言。",
+            "pinyin": "Wǒ huì shuō sān zhǒng yǔyán, yīzhí yǐlái wǒ dōu xǐhuan tiǎozhàn zìjǐ zhǎngwò xīn de yǔyán.",
+            "english": "I speak three languages. Always loved the challenge of mastering new ones.",
+            "points": 12,
+            "video": "https://i.imgur.com/q4oGjtu.mp4",
+            "response": {
+              "chinese": "很厉害啊！那我是不是可以期待今晚听到几句甜言蜜语呢？",
+              "pinyin": "Hěn lìhài a! Nà wǒ shì bù shì kěyǐ qídài jīnwǎn tīng dào jǐ jù tiányán mìyǔ ne?",
+              "english": "Impressive. So, should I be expecting some smooth talk in another language tonight?",
+              "context": "Raises an eyebrow, intrigued.",
+              "video": "https://i.imgur.com/lIUI4gu.mp4"
+            }
+          },
+          {
+            "id": "CN402",
+            "chinese": "我曾经一个人旅行了好几个月——这是我做过最棒的决定。",
+            "pinyin": "Wǒ céngjīng yīgè rén lǚxíng le hǎojǐ gè yuè——zhè shì wǒ zuò guò zuì bàng de juédìng.",
+            "english": "I once traveled solo for months—best decision I ever made.",
+            "points": 11,
+            "video": "https://i.imgur.com/UP6ZwPx.mp4",
+            "response": {
+              "chinese": "一个人旅行？这听起来很酷！最让你难忘的经历是什么？",
+              "pinyin": "Yī gè rén lǚxíng? Zhè tīng qǐlái hěn kù! Zuì ràng nǐ nánwàng de jīnglì shì shénme?",
+              "english": "A solo traveler? That's impressive. What was the most unforgettable part?",
+              "context": "Eyes light up with curiosity.",
+              "video": "https://i.imgur.com/QOxV3mo.mp4"
+            }
+          },
+          {
+            "id": "CN403",
+            "chinese": "我最擅长让人发笑。如果你想听，我可以证明给你看。",
+            "pinyin": "Wǒ zuì shàncháng ràng rén fāxiào. Rúguǒ nǐ xiǎng tīng, wǒ kěyǐ zhèngmíng gěi nǐ kàn.",
+            "english": "I have a talent for making people laugh. I'll prove it if you want.",
+            "points": 10,
+            "video": "https://i.imgur.com/glBuhQz.mp4",
+            "response": {
+              "chinese": "哦？是吗？那来吧，让我看看你的幽默感有多强。",
+              "pinyin": "Ò? Shì ma? Nà lái ba, ràng wǒ kànkan nǐ de yōumò gǎn yǒu duō qiáng.",
+              "english": "A comedian, huh? Alright, impress me—what's your best line?",
+              "context": "Smirks, tilting her head slightly.",
+              "video": "https://i.imgur.com/rDDCZEc.mp4"
+            }
+          }
+        ],
+        "transition": "The plates are cleared, and the soft hum of conversation in the restaurant blends with the low notes of a live pianist."
+      },
+      "5": {
+        "initial": {
+          "chinese": "那么，接下来呢？你是那种让美好夜晚就此结束的人……还是有更好的安排？",
+          "pinyin": "Nàme, jiēxiàlái ne? Nǐ shì nà zhǒng ràng měihǎo yèwǎn jiùcǐ jiéshù de rén... háishì yǒu gèng hǎo de ānpái?",
+          "english": "So, what's next? Are you the type to let a great night end here… or do you have something in mind?",
+          "context": "Her voice lowers slightly, warm and inviting.",
+          "video": "https://i.imgur.com/ggvXa8t.mp4"
+        },
+        "options": [
+          {
+            "id": "CN501",
+            "chinese": "我想继续这个夜晚，去我最喜欢的地方喝一杯。",
+            "pinyin": "Wǒ xiǎng jìxù zhège yèwǎn, qù wǒ zuì xǐhuan de dìfāng hē yī bēi.",
+            "english": "I'd love to continue this night over a nightcap at my favorite place.",
+            "points": 12,
+            "video": "https://i.imgur.com/ggvXa8t.mp4",
+            "response": {
+              "chinese": "有趣的提议。好吧……那么，你的'最喜欢的地方'是哪里？",
+              "pinyin": "Yǒuqù de tíyì. Hǎo ba... nàme, nǐ de 'zuì xǐhuan de dìfāng' shì nǎlǐ?",
+              "english": "A bold proposal. Alright… where's this mysterious favorite place of yours?",
+              "context": "Raises an intrigued eyebrow, smirking slightly.",
+              "video": "https://i.imgur.com/OmKdX9K.mp4"
+            }
+          },
+          {
+            "id": "CN502",
+            "chinese": "我们找个时间再约，我很想再见到你。",
+            "pinyin": "Wǒmen zhǎo gè shíjiān zài yuē, wǒ hěn xiǎng zài jiàndào nǐ.",
+            "english": "Let's plan something for another evening. I'd love to see you again.",
+            "points": 10,
+            "video": "https://i.imgur.com/jJavd0J.mp4",
+            "response": {
+              "chinese": "知道如何制造期待感的绅士——我喜欢。那么，你打算怎么安排呢？",
+              "pinyin": "Zhīdào rúhé zhìzào qídàigǎn de shēnshì——wǒ xǐhuan. Nàme, nǐ dǎsuàn zěnme ānpái ne?",
+              "english": "A gentleman who knows how to build anticipation—I like that. What kind of evening do you have in mind?",
+              "context": "Tilts her head slightly, studying you.",
+              "video": "https://i.imgur.com/PUp76XN.mp4"
+            }
+          },
+          {
+            "id": "CN503",
+            "chinese": "今晚很愉快，也许以后我们还会再见。",
+            "pinyin": "Jīnwǎn hěn yúkuài, yěxǔ yǐhòu wǒmen hái huì zàijiàn.",
+            "english": "This was great. Maybe we'll cross paths again sometime.",
+            "points": 6,
+            "video": "https://i.imgur.com/cdiqOcI.mp4",
+            "response": {
+              "chinese": "也许？听起来不太确定哦。",
+              "pinyin": "Yěxǔ? Tīng qǐlái bú tài quèdìng ò.",
+              "english": "Maybe? That's not very convincing.",
+              "context": "Sips the last of her wine, observing you with mild amusement.",
+              "video": "https://i.imgur.com/w6PwEmR.mp4"
+            }
+          }
+        ],
+        "transition": "The evening draws to a close. The waiter discreetly places the check on the table, and the flickering candlelight casts soft shadows across her face."
+      }
+    }
+  },
   ting: {
       id: 'ting',
       name: 'Ting',
       chineseName: '王雅婷',
       description: 'PREMIUM SPIRITS BRAND AMBASSADOR',
-      image: 'https://i.imgur.com/GxpvgKa.png',
+      image: '/tutors/bar_chinese.jpg',
       language: 'chinese',
       scenes: {
         1: {
@@ -32,307 +327,13 @@ export const characters: Characters = {
         }
       }
     },
-    mei: {  
-      "id": "mei",
-      "name": "Mei",
-      "chineseName": "李美琳",
-      "description": "CULINARY HISTORIAN",
-      "image": "/tutors/mei_chinese.jpg",
-      "language": "chinese",
-      "scenes": {
-        "1": {
-          "initial": {
-            "chinese": "刚刚好，我正欣赏着这里的氛围——看来你的品味不错。",
-            "pinyin": "Gānggāng hǎo, wǒ zhèng xīnshǎng zhe zhèlǐ de fēnwèi——kànlái nǐ de pǐnwèi búcuò.",
-            "english": "Perfect timing. I was just admiring the ambiance—seems like you have good taste.",
-            "context": "Seated at a beautifully set table, she gracefully looks up as you arrive.",
-            "video": "https://i.imgur.com/BrQbplM.mp4"
-          },
-          "options": [
-            {
-              "id": "CN101",
-              "chinese": "我特意订了座位，今晚当然要享受最好的。",
-              "pinyin": "Wǒ tèyì dìngle zuòwèi, jīnwǎn dāngrán yào xiǎngshòu zuì hǎo de.",
-              "english": "I took the liberty of making a reservation. Only the best for tonight.",
-              "points": 12,
-              "video": "https://i.imgur.com/BrQbplM.mp4",
-              "response": {
-                "chinese": "懂得提前计划的男人——我喜欢。这很有自信。",
-                "pinyin": "Dǒngdé tíqián jìhuà de nánrén——wǒ xǐhuan. Zhè hěn yǒu zìxìn.",
-                "english": "A man who plans ahead—I like that. It shows confidence.",
-                "context": "Smiles approvingly, adjusting her napkin.",
-                "video": "https://i.imgur.com/5j1vaLL.mp4"
-              }
-            },
-            {
-              "id": "CN102",
-              "chinese": "希望这里的美食能配得上这氛围。",
-              "pinyin": "Xīwàng zhèlǐ de měishí néng pèi dé shàng zhè fēnwèi.",
-              "english": "I hope the food lives up to the atmosphere.",
-              "points": 9,
-              "video": "https://i.imgur.com/5j1vaLL.mp4",
-              "response": {
-                "chinese": "我也这么觉得。但完美的晚餐，不仅仅是食物而已。",
-                "pinyin": "Wǒ yě zhème juéde. Dàn wánměi de wǎncān, bù jǐnjǐn shì shíwù éryǐ.",
-                "english": "I have a feeling it will. But a perfect dinner is more than just the food.",
-                "context": "Glances at the menu, intrigued.",
-                "video": "https://i.imgur.com/EocKrHD.mp4"
-              }
-            },
-            {
-              "id": "CN103",
-              "chinese": "说实话？我只是跟着网上的好评来的。",
-              "pinyin": "Shuō shíhuà? Wǒ zhǐshì gēnzhe wǎngshàng de hǎopíng lái de.",
-              "english": "Honestly? I just followed the best reviews online.",
-              "points": 6,
-              "video": "https://i.imgur.com/EocKrHD.mp4",
-              "response": {
-                "chinese": "很务实的做法。那么，你是那种相信评论的人，还是喜欢自己去发现新地方？",
-                "pinyin": "Hěn wùshí de zuòfǎ. Nàme, nǐ shì nà zhǒng xiāngxìn pínglùn de rén, háishì xǐhuan zìjǐ qù fāxiàn xīn dìfāng?",
-                "english": "Practical. So, do you always trust reviews, or do you like discovering places yourself?",
-                "context": "Raises an eyebrow, smirking.",
-                "video": "https://i.imgur.com/BrQbplM.mp4"
-              }
-            }
-          ],
-          "transition": "The waiter approaches with elegantly designed menus. A soft glow from the candlelight reflects off the glassware."
-        },
-        "2": {
-          "initial": {
-            "chinese": "我们先来点酒吧。你通常喜欢红酒、白酒，还是想尝试点特别的？",
-            "pinyin": "Wǒmen xiān lái diǎn jiǔ ba. Nǐ tōngcháng xǐhuan hóngjiǔ, báijiǔ, háishì xiǎng chángshì diǎn tèbié de?",
-            "english": "Let's start with a drink. Do you usually go for red, white, or something a little more exciting?",
-            "context": "Flicks her eyes toward the wine list, then back at you.",
-            "video": "https://i.imgur.com/G8NdFM9.mp4"
-          },
-          "options": [
-            {
-              "id": "CN201",
-              "chinese": "红酒，毫无疑问。一款经典的陈年佳酿总是最有魅力。",
-              "pinyin": "Hóngjiǔ, háowú yíwèn. Yī kuǎn jīngdiǎn de chénnián jiāniàng zǒng shì zuì yǒu mèilì.",
-              "english": "Red, always. There's something bold and timeless about a great vintage.",
-              "points": 12,
-              "video": "https://i.imgur.com/G8NdFM9.mp4",
-              "response": {
-                "chinese": "懂得欣赏深度和个性的男人——我欣赏。你有特别喜欢的产区吗？",
-                "pinyin": "Dǒngdé xīnshǎng shēndù hé gèxìng de nánrén——wǒ xīnshǎng. Nǐ yǒu tèbié xǐhuān de chǎnqū ma?",
-                "english": "A man who appreciates depth and character—I respect that. Any favorite regions?",
-                "context": "Nods approvingly, twirling the stem of her glass.",
-                "video": "https://i.imgur.com/DHrfRvR.mp4"
-              }
-            },
-            {
-              "id": "CN202",
-              "chinese": "白酒，尤其是清爽的那种，最适合放松。",
-              "pinyin": "Báijiǔ, yóuqí shì qīngshuǎng de nà zhǒng, zuì shìhé fàngsōng.",
-              "english": "White, especially something crisp and refreshing.",
-              "points": 10,
-              "video": "https://i.imgur.com/DHrfRvR.mp4",
-              "response": {
-                "chinese": "清爽又提神……这说明你喜欢轻松却又有品味的东西。",
-                "pinyin": "Qīngshuǎng yòu tíshén... zhè shuōmíng nǐ xǐhuan qīngsōng què yòu yǒu pǐnwèi de dōngxi.",
-                "english": "Crisp and refreshing... that tells me you like something easygoing, yet refined.",
-                "context": "Raises an eyebrow playfully.",
-                "video": "https://i.imgur.com/ByTHiAp.mp4"
-              }
-            },
-            {
-              "id": "CN203",
-              "chinese": "我喜欢尝试新鲜的选择，看看侍酒师会推荐什么。",
-              "pinyin": "Wǒ xǐhuan chángshì xīnxiān de xuǎnzé, kànkan shìjiǔshī huì tuījiàn shénme.",
-              "english": "I like to mix it up. Let's see what the sommelier recommends.",
-              "points": 11,
-              "video": "https://i.imgur.com/tZ8Azua.mp4",
-              "response": {
-                "chinese": "喜欢未知的惊喜？我喜欢。那我们就交给专业的来决定吧？",
-                "pinyin": "Xǐhuan wèizhī de jīngxǐ? Wǒ xǐhuan. Nà wǒmen jiù jiāo gěi zhuānyè de lái juédìng ba?",
-                "english": "A man who enjoys the thrill of the unknown—I like it. Shall we trust the expert, then?",
-                "context": "Smirks, intrigued.",
-                "video": "https://i.imgur.com/jhXd6g5.mp4"
-              }
-            }
-          ],
-          "transition": "The sommelier nods in approval, disappearing briefly before returning with a well-presented bottle."
-        },
-        "3": {
-          "initial": {
-            "chinese": "现在轮到今晚的真正主角——食物了。我希望你的品味不仅限于酒。",
-            "pinyin": "Xiànzài lúndào jīnwǎn de zhēnzhèng zhǔjiǎo——shíwù le. Wǒ xīwàng nǐ de pǐnwèi bú jǐnxiànyú jiǔ.",
-            "english": "Now, for the real star of the night—the food. I hope you have good taste beyond just wine.",
-            "context": "Glances at the menu, running her fingers along the edge of the page.",
-            "video": "https://i.imgur.com/uCOdXzm.mp4"
-          },
-          "options": [
-            {
-              "id": "CN301",
-              "chinese": "我总是选择主厨推荐，绝不会让人失望。",
-              "pinyin": "Wǒ zǒng shì xuǎnzé zhǔchú tuījiàn, jué bú huì ràng rén shīwàng.",
-              "english": "I always go for the chef's special—it never disappoints.",
-              "points": 12,
-              "video": "https://i.imgur.com/uCOdXzm.mp4",
-              "response": {
-                "chinese": "一个信任主厨的人——不错。我喜欢这种期待感。",
-                "pinyin": "Yīgè xìnrèn zhǔchú de rén——bùcuò. Wǒ xǐhuan zhè zhǒng qídài gǎn.",
-                "english": "A man who trusts the chef—I like that. There's something exciting about not knowing exactly what you're getting.",
-                "context": "Raises an intrigued eyebrow.",
-                "video": "https://i.imgur.com/Vl4dTsb.mp4"
-              }
-            },
-            {
-              "id": "CN302",
-              "chinese": "我喜欢牛排，经典、醇厚，而且总能令人满足。",
-              "pinyin": "Wǒ xǐhuān niúpái, jīngdiǎn, chúnhòu, érqiě zǒng néng lìng rén mǎnzú.",
-              "english": "I prefer a well-cooked steak. Classic, rich, and always satisfying.",
-              "points": 11,
-              "video": "https://i.imgur.com/S2Q0zNB.mp4",
-              "response": {
-                "chinese": "哦？喜欢牛排？让我猜猜——你一定是点五分熟，对吧？",
-                "pinyin": "Ó? Xǐhuan niúpái? Ràng wǒ cāicāi——nǐ yīdìng shì diǎn wǔ fēn shú, duì ba?",
-                "english": "A steak man? Let me guess—you like it medium rare, with just the right amount of sear.",
-                "context": "Smirks, leaning slightly forward.",
-                "video": "https://i.imgur.com/ovcNkXb.mp4"
-              }
-            },
-            {
-              "id": "CN303",
-              "chinese": "我相信你的选择，给我个惊喜吧。",
-              "pinyin": "Wǒ xiāngxìn nǐ de xuǎnzé, gěi wǒ gè jīngxǐ ba.",
-              "english": "I'll let you decide—surprise me.",
-              "points": 10,
-              "video": "https://i.imgur.com/JIIq1v3.mp4",
-              "response": {
-                "chinese": "愿意让我做决定？有趣，我喜欢。",
-                "pinyin": "Yuànyì ràng wǒ zuò juédìng? Yǒuqù, wǒ xǐhuan.",
-                "english": "A man who trusts a woman's choice? That's refreshing.",
-                "context": "Tilts her head, intrigued.",
-                "video": "https://i.imgur.com/DSGIYb5.mp4"
-              }
-            }
-          ],
-          "transition": "As your orders are taken, soft instrumental music plays in the background. The candlelight flickers, casting a warm glow over the table."
-        },
-        "4": {
-          "initial": {
-            "chinese": "现在告诉我一件我单凭外表猜不到的关于你的事？",
-            "pinyin": "Xiànzài gàosù wǒ yī jiàn wǒ dān píng wàibiǎo cāi bù dào de guānyú nǐ de shì?",
-            "english": "Now tell me—what's something about you I wouldn't guess just by looking at you?",
-            "context": "Resting her chin on her hand, she studies you with amused curiosity.",
-            "video": "https://i.imgur.com/q4oGjtu.mp4"
-          },
-          "options": [
-            {
-              "id": "CN401",
-              "chinese": "我会说三种语言，一直以来我都喜欢挑战自己掌握新的语言。",
-              "pinyin": "Wǒ huì shuō sān zhǒng yǔyán, yīzhí yǐlái wǒ dōu xǐhuan tiǎozhàn zìjǐ zhǎngwò xīn de yǔyán.",
-              "english": "I speak three languages. Always loved the challenge of mastering new ones.",
-              "points": 12,
-              "video": "https://i.imgur.com/q4oGjtu.mp4",
-              "response": {
-                "chinese": "很厉害啊！那我是不是可以期待今晚听到几句甜言蜜语呢？",
-                "pinyin": "Hěn lìhài a! Nà wǒ shì bù shì kěyǐ qídài jīnwǎn tīng dào jǐ jù tiányán mìyǔ ne?",
-                "english": "Impressive. So, should I be expecting some smooth talk in another language tonight?",
-                "context": "Raises an eyebrow, intrigued.",
-                "video": "https://i.imgur.com/lIUI4gu.mp4"
-              }
-            },
-            {
-              "id": "CN402",
-              "chinese": "我曾经一个人旅行了好几个月——这是我做过最棒的决定。",
-              "pinyin": "Wǒ céngjīng yīgè rén lǚxíng le hǎojǐ gè yuè——zhè shì wǒ zuò guò zuì bàng de juédìng.",
-              "english": "I once traveled solo for months—best decision I ever made.",
-              "points": 11,
-              "video": "https://i.imgur.com/UP6ZwPx.mp4",
-              "response": {
-                "chinese": "一个人旅行？这听起来很酷！最让你难忘的经历是什么？",
-                "pinyin": "Yī gè rén lǚxíng? Zhè tīng qǐlái hěn kù! Zuì ràng nǐ nánwàng de jīnglì shì shénme?",
-                "english": "A solo traveler? That's impressive. What was the most unforgettable part?",
-                "context": "Eyes light up with curiosity.",
-                "video": "https://i.imgur.com/QOxV3mo.mp4"
-              }
-            },
-            {
-              "id": "CN403",
-              "chinese": "我最擅长让人发笑。如果你想听，我可以证明给你看。",
-              "pinyin": "Wǒ zuì shàncháng ràng rén fāxiào. Rúguǒ nǐ xiǎng tīng, wǒ kěyǐ zhèngmíng gěi nǐ kàn.",
-              "english": "I have a talent for making people laugh. I'll prove it if you want.",
-              "points": 10,
-              "video": "https://i.imgur.com/glBuhQz.mp4",
-              "response": {
-                "chinese": "哦？是吗？那来吧，让我看看你的幽默感有多强。",
-                "pinyin": "Ò? Shì ma? Nà lái ba, ràng wǒ kànkan nǐ de yōumò gǎn yǒu duō qiáng.",
-                "english": "A comedian, huh? Alright, impress me—what's your best line?",
-                "context": "Smirks, tilting her head slightly.",
-                "video": "https://i.imgur.com/rDDCZEc.mp4"
-              }
-            }
-          ],
-          "transition": "The plates are cleared, and the soft hum of conversation in the restaurant blends with the low notes of a live pianist."
-        },
-        "5": {
-          "initial": {
-            "chinese": "那么，接下来呢？你是那种让美好夜晚就此结束的人……还是有更好的安排？",
-            "pinyin": "Nàme, jiēxiàlái ne? Nǐ shì nà zhǒng ràng měihǎo yèwǎn jiùcǐ jiéshù de rén... háishì yǒu gèng hǎo de ānpái?",
-            "english": "So, what's next? Are you the type to let a great night end here… or do you have something in mind?",
-            "context": "Her voice lowers slightly, warm and inviting.",
-            "video": "https://i.imgur.com/ggvXa8t.mp4"
-          },
-          "options": [
-            {
-              "id": "CN501",
-              "chinese": "我想继续这个夜晚，去我最喜欢的地方喝一杯。",
-              "pinyin": "Wǒ xiǎng jìxù zhège yèwǎn, qù wǒ zuì xǐhuan de dìfāng hē yī bēi.",
-              "english": "I'd love to continue this night over a nightcap at my favorite place.",
-              "points": 12,
-              "video": "https://i.imgur.com/ggvXa8t.mp4",
-              "response": {
-                "chinese": "有趣的提议。好吧……那么，你的'最喜欢的地方'是哪里？",
-                "pinyin": "Yǒuqù de tíyì. Hǎo ba... nàme, nǐ de 'zuì xǐhuan de dìfāng' shì nǎlǐ?",
-                "english": "A bold proposal. Alright… where's this mysterious favorite place of yours?",
-                "context": "Raises an intrigued eyebrow, smirking slightly.",
-                "video": "https://i.imgur.com/OmKdX9K.mp4"
-              }
-            },
-            {
-              "id": "CN502",
-              "chinese": "我们找个时间再约，我很想再见到你。",
-              "pinyin": "Wǒmen zhǎo gè shíjiān zài yuē, wǒ hěn xiǎng zài jiàndào nǐ.",
-              "english": "Let's plan something for another evening. I'd love to see you again.",
-              "points": 10,
-              "video": "https://i.imgur.com/jJavd0J.mp4",
-              "response": {
-                "chinese": "知道如何制造期待感的绅士——我喜欢。那么，你打算怎么安排呢？",
-                "pinyin": "Zhīdào rúhé zhìzào qídàigǎn de shēnshì——wǒ xǐhuan. Nàme, nǐ dǎsuàn zěnme ānpái ne?",
-                "english": "A gentleman who knows how to build anticipation—I like that. What kind of evening do you have in mind?",
-                "context": "Tilts her head slightly, studying you.",
-                "video": "https://i.imgur.com/PUp76XN.mp4"
-              }
-            },
-            {
-              "id": "CN503",
-              "chinese": "今晚很愉快，也许以后我们还会再见。",
-              "pinyin": "Jīnwǎn hěn yúkuài, yěxǔ yǐhòu wǒmen hái huì zàijiàn.",
-              "english": "This was great. Maybe we'll cross paths again sometime.",
-              "points": 6,
-              "video": "https://i.imgur.com/cdiqOcI.mp4",
-              "response": {
-                "chinese": "也许？听起来不太确定哦。",
-                "pinyin": "Yěxǔ? Tīng qǐlái bú tài quèdìng ò.",
-                "english": "Maybe? That's not very convincing.",
-                "context": "Sips the last of her wine, observing you with mild amusement.",
-                "video": "https://i.imgur.com/w6PwEmR.mp4"
-              }
-            }
-          ],
-          "transition": "The evening draws to a close. The waiter discreetly places the check on the table, and the flickering candlelight casts soft shadows across her face."
-        }
-      }
-    },
+    
     xue: {
       id: 'xue',
       name: 'Xue',
       chineseName: '张雪',
       description: 'MODEL',
-      image: 'https://i.imgur.com/uhWVj4R.png',
+      image: '/tutors/networking_chinese.jpg',
       language: 'chinese',
       scenes: {
         1: {
@@ -366,7 +367,7 @@ aoi: {
   "name": "Aoi",
   "japaneseName": "青井さくら",
   "description": "Traditional Tea Ceremony Master",
-  "image": "https://placeholder.com/image",
+  "image": "/tutors/dining_japanese.jpg",
   "language": "japanese",
   "scenes": {
     "1": {
@@ -375,7 +376,7 @@ aoi: {
         "romaji": "Irasshaimase! Ocha no sekai e youkoso.",
         "english": "Welcome! Welcome to the world of tea.",
         "context": "Aoi greets you in a traditional Japanese tea room.",
-        "video": "https://placeholder.com/video"
+        "video": "https://i.imgur.com/FnCfTUU.mp4"
       },
       "options": [
         {
@@ -661,7 +662,7 @@ aya: {
   name: 'Aya',
   japaneseName: '佐藤彩',
   description: 'Modern Fashion Designer',
-  image: 'https://placeholder.com/image',
+  image: '/tutors/networking_japanese.jpg',
   language: 'japanese',
   scenes: {
     1: {
@@ -681,7 +682,7 @@ misa: {
   name: 'Misa',
   japaneseName: '田中美咲',
   description: 'Pop Culture Enthusiast',
-  image: 'https://placeholder.com/image',
+  image: '/tutors/bar_jap.jpg',
   language: 'japanese',
   scenes: {
     1: {
@@ -703,7 +704,7 @@ ji: {
   "name": "Ji",
   "koreanName": "김지원",
   "description": "Corporate Executive",
-  "image": "https://placeholder.com/image",
+  "image": "/tutors/dining_korean.jpg",
   "language": "korean",
   "scenes": {
     "1": {
@@ -712,7 +713,7 @@ ji: {
         "romanized": "Annyeonghaseyo! Oneul sueop junbidoesyeonayo?",
         "english": "Hello! Are you ready for today's lesson?",
         "context": "Ji greets you in her executive office.",
-        "video": "https://placeholder.com/video"
+        "video": "https://i.imgur.com/Jh7fLXI.mp4"
       },
       "options": [
         {
@@ -998,7 +999,7 @@ min: {
   name: 'Min',
   koreanName: '박민지',
   description: 'K-pop Dance Instructor',
-  image: 'https://placeholder.com/image',
+  image: '/tutors/networking_korean.jpg',
   language: 'korean',
   scenes: {
     1: {
@@ -1018,7 +1019,7 @@ sua: {
   name: 'Sua',
   koreanName: '이수아',
   description: 'Traditional Artist',
-  image: 'https://placeholder.com/image',
+  image: '/tutors/bar_korean.jpg',
   language: 'korean',
   scenes: {
     1: {
@@ -1040,7 +1041,7 @@ isabella: {
   "name": "Isabella",
   "spanishName": "Isabella Martínez",
   "description": "Professional Chef",
-  "image": "https://placeholder.com/image",
+  "image": "/tutors/dining_spanish.jpg",
   "language": "spanish",
   "scenes": {
     "1": {
@@ -1048,7 +1049,7 @@ isabella: {
         "spanish": "¡Bienvenido a mi cocina! ¿Listo para aprender español mientras cocinamos?",
         "english": "Welcome to my kitchen! Ready to learn Spanish while we cook?",
         "context": "Isabella welcomes you in her professional kitchen.",
-        "video": "https://placeholder.com/video"
+        "video": "https://i.imgur.com/3YtPKdz.mp4"
       },
       "options": [
         {
@@ -1300,7 +1301,7 @@ sofia: {
   name: 'Sofia',
   spanishName: 'Sofía Rodriguez',
   description: 'Literature Professor',
-  image: 'https://placeholder.com/image',
+  image: '/tutors/bar_spanish.jpg',
   language: 'spanish',
   scenes: {
     1: {
@@ -1319,7 +1320,7 @@ valentina: {
   name: 'Valentina',
   spanishName: 'Valentina López',
   description: 'Travel Blogger',
-  image: 'https://placeholder.com/image',
+  image: '/tutors/networking_spanish.jpg',
   language: 'spanish',
   scenes: {
     1: {

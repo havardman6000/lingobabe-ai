@@ -22,7 +22,6 @@ export default function IsabellaLayout({
 
   return (
     <div className="min-h-screen">
-      <EnhancedWalletConnector />
       {isConnected ? children : (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-xl text-gray-700">

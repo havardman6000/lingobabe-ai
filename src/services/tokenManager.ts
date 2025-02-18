@@ -351,41 +351,59 @@ class TokenManager {
    * Check if user has access to a specific character
    */
   async checkAccess(characterId: string): Promise<AccessResult> {
-    if (!this.initialized || !this.web3 || !this.contract) {
-      throw new Error('TokenManager not initialized');
-    }
-
     try {
-      const accounts = await this.web3.eth.getAccounts();
+      const accounts = await this.web3?.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
-
-      // Call contract to check access
-      const hasAccess = await this.contract.methods.hasCharacterAccess(accounts[0], characterId).call();
-
-      if (hasAccess) {
-        // Also check local storage for timestamp info
-        const accessKey = `${ACCESS_STORAGE_PREFIX}${accounts[0].toLowerCase()}_${characterId}`;
-        const storedAccess = localStorage.getItem(accessKey);
-        let accessGranted = Date.now();
-
-        if (storedAccess) {
-          try {
-            const accessData = JSON.parse(storedAccess) as AccessStatus;
-            if (accessData.accessGranted) {
-              accessGranted = accessData.accessGranted;
-            }
-          } catch (e) {
-            console.warn('Invalid access data format', e);
+      
+      const address = accounts[0].toLowerCase();
+      const accessKey = `${ACCESS_STORAGE_PREFIX}${address}_${characterId}`;
+      
+      // First check local storage
+      const storedAccess = localStorage.getItem(accessKey);
+      if (storedAccess) {
+        try {
+          const accessData = JSON.parse(storedAccess) as AccessStatus;
+          
+          // If marked as completed in local storage, return no access
+          if (accessData.completed) {
+            return { hasAccess: false, characterId };
           }
+          
+          // If marked as having access in local storage
+          if (accessData.hasAccess) {
+            return {
+              hasAccess: true,
+              characterId,
+              accessGranted: accessData.accessGranted
+            };
+          }
+        } catch (e) {
+          console.warn('Invalid access data format', e);
         }
-
-        return {
-          hasAccess: true,
-          characterId,
-          accessGranted
-        };
       }
-
+      
+      // Only check blockchain if no valid data in localStorage
+      if (this.initialized && this.contract) {
+        const hasAccess = await this.contract.methods.hasCharacterAccess(accounts[0], characterId).call();
+        
+        if (hasAccess) {
+          const accessGranted = Date.now();
+          const accessData: AccessStatus = {
+            hasAccess: true,
+            characterId,
+            accessGranted
+          };
+          
+          localStorage.setItem(accessKey, JSON.stringify(accessData));
+          
+          return {
+            hasAccess: true,
+            characterId,
+            accessGranted
+          };
+        }
+      }
+      
       return { hasAccess: false };
     } catch (error) {
       console.error('Failed to check access:', error);
@@ -401,39 +419,55 @@ class TokenManager {
     if (!this.initialized || !this.contract || !this.web3) {
       throw new Error('TokenManager not initialized');
     }
-
+  
     try {
       const accounts = await this.web3.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
-
+  
+      // Check if we need to clear a "completed" status first
+      const accessKey = `${ACCESS_STORAGE_PREFIX}${accounts[0].toLowerCase()}_${characterId}`;
+      const storedAccess = localStorage.getItem(accessKey);
+      
+      if (storedAccess) {
+        try {
+          const accessData = JSON.parse(storedAccess) as AccessStatus;
+          if (accessData.completed) {
+            // Clear completed status by removing the entry
+            localStorage.removeItem(accessKey);
+          }
+        } catch (e) {
+          console.warn('Invalid access data format', e);
+        }
+      }
+  
       // Check current balance
       const currentBalance = await this.getBalance(accounts[0]);
       if (parseFloat(currentBalance) < ACCESS_COST) {
         throw new Error(`Insufficient LBAI tokens. You need at least ${ACCESS_COST} LBAI to access this chat.`);
       }
-
+  
       // Call the contract method
       const result = await this.contract.methods.payForCharacterAccess(characterId).send({
         from: accounts[0]
       });
-
+  
       if (result) {
         // Store access info in local storage for UI purposes
-        const accessKey = `${ACCESS_STORAGE_PREFIX}${accounts[0].toLowerCase()}_${characterId}`;
         const accessData: AccessStatus = {
           hasAccess: true,
           characterId,
-          accessGranted: Date.now()
+          accessGranted: Date.now(),
+          completed: false
         };
-
+  
         localStorage.setItem(accessKey, JSON.stringify(accessData));
-
+  
         // Dispatch event for UI updates
         window.dispatchEvent(new CustomEvent('accessStatusChanged', {
           detail: accessData
         }));
       }
-
+  
       return {
         success: true,
         hash: result.transactionHash
@@ -448,37 +482,32 @@ class TokenManager {
    * Mark a character chat as completed
    */
   markChatCompleted(characterId: string): void {
-    if (typeof window === 'undefined' || !this.web3 || !this.contract) return;
-
+    if (typeof window === 'undefined') return;
+  
     try {
-      this.web3.eth.getAccounts().then(accts => {
-        if (!accts?.length) return;
-
-        // Add null check for this.contract
-        if (!this.contract) {
-          console.error('Contract is null when trying to revoke access');
-          return;
-        }
-
-        this.contract.methods.revokeCharacterAccess(accts[0], characterId).send({
-          from: accts[0]
-        }).then(() => {
+      if (this.web3) {
+        this.web3.eth.getAccounts().then(accts => {
+          if (!accts?.length) return;
+          
           const address = accts[0].toLowerCase();
           const accessKey = `${ACCESS_STORAGE_PREFIX}${address}_${characterId}`;
-
-          // Remove local storage entry
-          localStorage.removeItem(accessKey);
-
+          
+          // Only update localStorage - don't make a blockchain call
+          const accessData: AccessStatus = {
+            hasAccess: false,
+            characterId,
+            accessGranted: 0,
+            completed: true
+          };
+          
+          localStorage.setItem(accessKey, JSON.stringify(accessData));
+          
           // Dispatch event for UI updates
           window.dispatchEvent(new CustomEvent('chatCompleted', {
             detail: { characterId }
           }));
-        }).catch((error: any) => {
-          console.error('Failed to revoke access in contract:', error);
         });
-      }).catch(error => {
-        console.error('Failed to get accounts:', error);
-      });
+      }
     } catch (error) {
       console.error('Failed to mark chat as completed:', error);
     }

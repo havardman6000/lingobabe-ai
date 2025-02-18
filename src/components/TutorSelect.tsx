@@ -1,14 +1,15 @@
 // src/components/TutorSelect.tsx
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useWeb3 } from '../components/providers/web3-provider'
-import { useChatStore } from '@/store/chatStore'
-import { characters } from '@/data/characters'
-import { SupportedLanguage, Character } from '@/types/chat'
-import { AccessStatus } from '@/types/accessStatus'
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useWeb3 } from '../components/providers/web3-provider';
+import { useChatStore } from '@/store/chatStore';
+import { characters } from '@/data/characters';
+import { SupportedLanguage, Character } from '@/types/chat';
+import { AccessStatus } from '@/types/accessStatus';
 
 interface TutorSelectProps {
   language: SupportedLanguage;
+  disabledTutors: string[]; // List of disabled tutors
 }
 
 const getLocalizedName = (tutor: Character) => {
@@ -24,16 +25,16 @@ const getLocalizedName = (tutor: Character) => {
   }
 };
 
-export function TutorSelect({ language }: TutorSelectProps) {
-  const router = useRouter()
-  const { isConnected, connect, address } = useWeb3()
-  const { actions } = useChatStore()
-  const [accessStatuses, setAccessStatuses] = useState<Record<string, boolean>>({})
-  const [isLoading, setIsLoading] = useState(true)
+export function TutorSelect({ language, disabledTutors }: TutorSelectProps) {
+  const router = useRouter();
+  const { isConnected, connect, address } = useWeb3();
+  const { actions } = useChatStore();
+  const [accessStatuses, setAccessStatuses] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   const filteredTutors = Object.values(characters).filter(
     tutor => tutor.language === language
-  )
+  );
 
   // Load access status for all tutors
   useEffect(() => {
@@ -45,7 +46,7 @@ export function TutorSelect({ language }: TutorSelectProps) {
 
       try {
         const statuses: Record<string, boolean> = {};
-        
+
         for (const tutor of filteredTutors) {
           const accessResult = await window.tokenManager.checkAccess(tutor.id);
           statuses[tutor.id] = accessResult.hasAccess;
@@ -100,20 +101,20 @@ export function TutorSelect({ language }: TutorSelectProps) {
   const handleTutorSelect = async (tutorId: string) => {
     if (!isConnected) {
       try {
-        await connect()
+        await connect();
       } catch (error) {
-        console.error('Failed to connect wallet:', error)
-        return
+        console.error('Failed to connect wallet:', error);
+        return;
       }
     }
 
-    actions.selectCharacter(tutorId)
-    router.push(`/chat/${language}/${tutorId}`)
-  }
+    actions.selectCharacter(tutorId);
+    router.push(`/chat/${language}/${tutorId}`);
+  };
 
   const getAccessBadge = (tutorId: string) => {
     if (isLoading) return null;
-    
+
     if (accessStatuses[tutorId]) {
       return (
         <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full z-10">
@@ -139,7 +140,7 @@ export function TutorSelect({ language }: TutorSelectProps) {
           <p className="animate-pulse text-gray-700">Loading access information...</p>
         </div>
       )}
-      
+
       <div className="text-center mb-8 py-3 px-4 bg-white/60 backdrop-blur-sm rounded-lg inline-block mx-auto">
         <div className="flex items-center mb-2 text-sm text-gray-700">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 mr-2 text-blue-600">
@@ -148,17 +149,28 @@ export function TutorSelect({ language }: TutorSelectProps) {
           <span>Each tutor requires a one-time payment of 10 LBAI</span>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTutors.map((tutor) => (
           <div
             key={tutor.id}
-            onClick={() => handleTutorSelect(tutor.id)}
-            className="relative rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
-            style={{ height: '300px' }}
+            onClick={() => {
+              if (disabledTutors.includes(tutor.name)) return;
+              handleTutorSelect(tutor.id);
+            }}
+            className={`relative rounded-xl overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 ${
+              disabledTutors.includes(tutor.name) ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            style={{ height: '400px' }}
           >
             {getAccessBadge(tutor.id)}
-            
+
+            {disabledTutors.includes(tutor.name) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 text-white text-lg font-semibold">
+                Still in the works
+              </div>
+            )}
+
             <img
               src={tutor.image}
               alt={tutor.name}
@@ -177,5 +189,5 @@ export function TutorSelect({ language }: TutorSelectProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }

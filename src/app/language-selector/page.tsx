@@ -122,14 +122,7 @@ export default function LanguageSelection() {
                 alt={language.name} 
                 className="w-full object-contain rounded-t-2xl"
               />
-              <div className="p-4 bg-white rounded-b-2xl flex-grow flex flex-col justify-center">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-1">
-                  {language.name}
-                </h2>
-                <p className="text-lg text-gray-700">
-                  {language.description}
-                </p>
-              </div>
+              
             </div>
           ))}
         </div>

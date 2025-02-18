@@ -8,7 +8,7 @@ import DynamicBar from '@/components/DynamicBar';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AccessStatus } from '@/types/accessStatus';
-
+import { BackButton } from '@/components/BackButton';
 export default function DateSelectionPage() {
   const { isConnected, address } = useWeb3();
   const router = useRouter();
@@ -113,6 +113,9 @@ export default function DateSelectionPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-r from-pink-50 to-rose-100 py-12">
+      <div className="fixed top-4 left-4 z-50">
+        <BackButton />
+      </div>
       <div
         className="fixed top-[6%] left-[-13.5%] h-full w-[30%] bg-cover bg-no-repeat z-40"
         style={{ backgroundImage: 'url(/tutors/Tree.png)' }}

@@ -4,6 +4,7 @@ import Web3 from 'web3';
 import { useRouter } from 'next/navigation';
 import { EthereumProvider } from '@/types/ethereum';
 import { messageStore } from '@/services/messageStore';
+import { useChatStore } from '@/store/chatStore';
 
 interface Web3ContextType {
   address: string | null;
@@ -205,16 +206,26 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   const disconnect = useCallback(async () => {
     try {
+
+      
       // Clear all storage immediately
       sessionStorage.clear();
       localStorage.clear();
-
+      const currentCharacter = useChatStore.getState().selectedCharacter;
+      if (currentCharacter && window.tokenManager?.initialized && address) {
+        try {
+          await window.tokenManager.markChatCompleted(currentCharacter);
+        } catch (accessError) {
+          console.warn('Failed to revoke access on disconnect:', accessError);
+        }
+      }
       // Clear state
       setAddress(null);
       setBalance('0');
       setMessagesRemaining(0);
       setError(null);
 
+     
       // Clear token manager state
       if (window.tokenManager) {
         window.tokenManager.initialized = false;
@@ -246,7 +257,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       // Even on error, redirect to language selector
       window.location.href = '/language-selector';
     }
-  }, []);
+  }, [address]);
 
   useEffect(() => {
     const checkConnection = async () => {
