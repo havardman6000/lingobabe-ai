@@ -1,5 +1,6 @@
-// MeiChatPage.tsx
+// src/app/chat/chinese/mei/page.tsx (similar changes needed for other tutor pages)
 
+// MeiChatPage.tsx
 'use client'
 
 import { ChatInterface } from '@/components/ChatInterface'
@@ -44,11 +45,12 @@ export default function MeiChatPage() {
     initializeChat()
   }, [isConnected, selectedCharacter, tutorId, actions, router])
 
-  // Check access to this character
+  // Check access to this character - ALWAYS assume no access by default
   useEffect(() => {
     const checkAccess = async () => {
       if (!window.tokenManager?.initialized || !address) {
         setIsCheckingAccess(false)
+        setHasAccess(false) // Default to no access
         return
       }
 
@@ -56,9 +58,16 @@ export default function MeiChatPage() {
         setIsCheckingAccess(true)
         const accessResult = await window.tokenManager.checkAccess(tutorId)
         setHasAccess(accessResult.hasAccess)
+        
+        // If no access according to the check, also clear any possibly stale local storage data
+        if (!accessResult.hasAccess) {
+          const accessKey = `character_access_${address.toLowerCase()}_${tutorId}`;
+          localStorage.removeItem(accessKey);
+        }
       } catch (error: any) {
         console.error('Failed to check access:', error)
         setError(error.message || 'Failed to verify access status')
+        setHasAccess(false) // Default to no access on error
       } finally {
         setIsCheckingAccess(false)
       }
@@ -66,6 +75,9 @@ export default function MeiChatPage() {
 
     if (isConnected && !isInitializing) {
       checkAccess()
+    } else {
+      // Always default to no access until explicitly verified
+      setHasAccess(false)
     }
   }, [isConnected, isInitializing, address, tutorId])
 
@@ -78,11 +90,27 @@ export default function MeiChatPage() {
       }
     }
 
+    const handleChatCompleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{characterId: string}>
+      if (customEvent.detail?.characterId === tutorId) {
+        // Make sure access is revoked when chat is completed
+        setHasAccess(false)
+        // Also clear local storage
+        if (address) {
+          const accessKey = `character_access_${address.toLowerCase()}_${tutorId}`;
+          localStorage.removeItem(accessKey);
+        }
+      }
+    }
+
     window.addEventListener('accessStatusChanged', handleAccessChange)
+    window.addEventListener('chatCompleted', handleChatCompleted)
+    
     return () => {
       window.removeEventListener('accessStatusChanged', handleAccessChange)
+      window.removeEventListener('chatCompleted', handleChatCompleted)
     }
-  }, [tutorId])
+  }, [tutorId, address])
 
   const handleAccessGranted = () => {
     setHasAccess(true)

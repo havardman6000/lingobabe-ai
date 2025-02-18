@@ -63,34 +63,35 @@ export function ChatInterface() {
 
   // Initialize token manager and check access
   useEffect(() => {
-    const initialize = async () => {
-      if (!window.ethereum || !address) {
+    const checkAccess = async () => {
+      if (!window.tokenManager?.initialized || !address || !selectedCharacter) {
         setIsCheckingAccess(false);
+        setHasAccess(false); // Default to no access
         return;
       }
-
+  
       try {
-        // Initialize token manager if needed
-        if (window.tokenManager && !window.tokenManager.initialized) {
-          const web3 = new Web3(window.ethereum);
-          await window.tokenManager.initialize(web3);
+        setIsCheckingAccess(true);
+        const accessResult = await window.tokenManager.checkAccess(selectedCharacter);
+        setHasAccess(accessResult.hasAccess);
+        
+        // If no access, ensure we clear any stale local storage data
+        if (!accessResult.hasAccess) {
+          const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+          localStorage.removeItem(accessKey);
         }
-
-        // Check access if we have a selected character
-        if (selectedCharacter && window.tokenManager?.initialized) {
-          const accessResult = await window.tokenManager.checkAccess(selectedCharacter);
-          setHasAccess(accessResult.hasAccess);
-        }
-      } catch (error) {
-        console.error('Initialization error:', error);
-        showErrorMessage('Failed to connect to wallet or verify access.');
+      } catch (error: any) {
+        console.error('Failed to check access:', error);
+        setError(error.message || 'Failed to verify access status');
+        setHasAccess(false); // Default to no access on error
       } finally {
         setIsCheckingAccess(false);
       }
     };
-
-    initialize();
-  }, [address, selectedCharacter]);
+  
+    // Just check access if we have a wallet connection
+    checkAccess();
+  }, [address, selectedCharacter]);;
 
   // Listen for access status changes
   useEffect(() => {
@@ -101,11 +102,36 @@ export function ChatInterface() {
       }
     };
     
+    const handleChatCompleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{characterId: string}>;
+      if (customEvent.detail?.characterId === selectedCharacter) {
+        // Make sure access is revoked when chat is completed
+        setHasAccess(false);
+        // Also clear local storage
+        if (address) {
+          const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+          localStorage.removeItem(accessKey);
+        }
+      }
+    };
+  
     window.addEventListener('accessStatusChanged', handleAccessChange);
+    window.addEventListener('chatCompleted', handleChatCompleted);
+    
     return () => {
       window.removeEventListener('accessStatusChanged', handleAccessChange);
+      window.removeEventListener('chatCompleted', handleChatCompleted);
     };
-  }, [selectedCharacter]);
+  }, [selectedCharacter, address]);;
+
+  if (isCheckingAccess) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl animate-pulse">Verifying access...</div>
+      </div>
+    );
+  }
+
 
   const handleAccessGranted = () => {
     setHasAccess(true);
@@ -223,9 +249,9 @@ export function ChatInterface() {
         }
   
         const primaryText = selectedOption.response.chinese ||
-                          selectedOption.response.japanese ||
-                          selectedOption.response.korean ||
-                          selectedOption.response.spanish;
+                            selectedOption.response.japanese ||
+                            selectedOption.response.korean ||
+                            selectedOption.response.spanish;
         if (primaryText) {
           await playAudio(primaryText);
         }
@@ -233,11 +259,37 @@ export function ChatInterface() {
   
       // Progress to the next scene (local state change, no blockchain needed)
       if (currentScene >= 5) {
-        setShowEndPopup(true);
-        // Mark as completed in local storage only
-        if (window.tokenManager && selectedCharacter) {
-          window.tokenManager.markChatCompleted(selectedCharacter);
+        // IMPORTANT: Mark chat as completed before showing end popup
+        if (window.tokenManager?.initialized && selectedCharacter) {
+          try {
+            // First mark as completed in local storage
+            const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+            const storedAccess = localStorage.getItem(accessKey);
+            if (storedAccess) {
+              try {
+                const accessData = JSON.parse(storedAccess);
+                accessData.completed = true;
+                accessData.hasAccess = false; // Explicitly revoke access
+                localStorage.setItem(accessKey, JSON.stringify(accessData));
+              } catch (e) {
+                console.error('Error updating access data:', e);
+              }
+            }
+            
+            // Then call token manager to revoke access in blockchain
+            window.tokenManager.markChatCompleted(selectedCharacter);
+            
+            // Update local state
+            setHasAccess(false);
+          } catch (completionError) {
+            console.error('Error marking chat as completed:', completionError);
+          }
         }
+        
+        // Then show end popup
+        setShowEndPopup(true);
+        
+        // Clean up local storage
         localStorage.removeItem(`scene_${selectedCharacter}_${address.toLowerCase()}`);
       } else {
         // Continue to next scene - DON'T end the chat
@@ -263,6 +315,42 @@ export function ChatInterface() {
       setInput('');
     }
   };
+  
+  const handleEndChat = () => {
+    setShowEndPopup(false);
+    
+    if (selectedCharacter && address) {
+      // ONLY update local state - no blockchain calls
+      setHasAccess(false);
+      
+      // Update local storage directly
+      const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+      try {
+        // Mark as completed in local storage only
+        const storedData = localStorage.getItem(accessKey);
+        if (storedData) {
+          const accessData = JSON.parse(storedData);
+          accessData.completed = true;
+          accessData.hasAccess = false;
+          localStorage.setItem(accessKey, JSON.stringify(accessData));
+        }
+      } catch (e) {
+        // If error, just remove the item
+        localStorage.removeItem(accessKey);
+      }
+      
+      // Manually dispatch events to update UI
+      window.dispatchEvent(new CustomEvent('chatCompleted', {
+        detail: { characterId: selectedCharacter }
+      }));
+      
+      // Navigate away
+      router.push(`/chat/${character?.language}`);
+    } else {
+      router.push('/');
+    }
+  };
+  
 
   const handleReturnToSelection = () => {
     router.push(`/chat/${character?.language || ''}`);
@@ -278,15 +366,15 @@ export function ChatInterface() {
   }
 
   // Render access control if user doesn't have access
-  if (!hasAccess && selectedCharacter) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">Access Required</h1>
-            <p className="text-gray-300 mb-6">
-              You need to pay 10 LBAI tokens to chat with {character?.name || 'this character'}.
-            </p>
+if (!hasAccess && selectedCharacter) {
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-2">Access Required</h1>
+          <p className="text-gray-300 mb-6">
+            You need to pay 10 LBAI tokens to chat with {character?.name || 'this character'}.
+          </p>
             
             <CharacterAccessControl
               characterId={selectedCharacter}
@@ -310,11 +398,14 @@ export function ChatInterface() {
   return (
     <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
       <ChatHeader
-      characterName={character?.name || ''}
-      happiness={happiness[selectedCharacter || ''] || 50}
-      characterId={selectedCharacter || ''}
-      onBack={() => router.push(`/chat/${character?.language}`)}
-    />
+  characterName={character?.name || ''}
+  happiness={happiness[selectedCharacter || ''] || 50}
+  characterId={selectedCharacter || ''}
+  onBack={() => {
+    // Simple navigation, no blockchain calls
+    router.push(`/chat/${character?.language}`);
+  }}
+/>
 
       {showError && error && (
         <Alert variant="destructive" className="mx-4 mt-4">
@@ -410,3 +501,4 @@ export function ChatInterface() {
     </Card>
   );
 }
+// src/components/ChatInterface/index.tsx

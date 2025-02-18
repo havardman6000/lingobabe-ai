@@ -60,6 +60,8 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  
+
   const switchToMonadTestnet = async () => {
     if (!window.ethereum) throw new Error('MetaMask not found');
 
@@ -155,6 +157,24 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       setError(error.message || 'Failed to update user info');
     }
   }, []);
+  
+  useEffect(() => {
+    const handleBalanceChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{address: string, balance: string}>;
+      if (customEvent.detail?.address === address) {
+        setBalance(customEvent.detail.balance);
+      }
+    };
+    
+    window.addEventListener('balanceChanged', handleBalanceChanged);
+    
+    return () => {
+      window.removeEventListener('balanceChanged', handleBalanceChanged);
+    };
+  }, [address]);;
+
+
+  
 
   const connect = useCallback(async () => {
     setError(null);
@@ -206,31 +226,27 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   const disconnect = useCallback(async () => {
     try {
-
-      
       // Clear all storage immediately
       sessionStorage.clear();
-      localStorage.clear();
-      const currentCharacter = useChatStore.getState().selectedCharacter;
-      if (currentCharacter && window.tokenManager?.initialized && address) {
+      
+      // Call token manager's disconnect to clear access data
+      if (window.tokenManager) {
         try {
-          await window.tokenManager.markChatCompleted(currentCharacter);
-        } catch (accessError) {
-          console.warn('Failed to revoke access on disconnect:', accessError);
+          await window.tokenManager.disconnect();
+        } catch (error) {
+          console.error('Token manager disconnect error:', error);
         }
+      } else {
+        // If token manager isn't available, clear storage manually
+        localStorage.clear();
       }
+  
       // Clear state
       setAddress(null);
       setBalance('0');
       setMessagesRemaining(0);
       setError(null);
-
-     
-      // Clear token manager state
-      if (window.tokenManager) {
-        window.tokenManager.initialized = false;
-      }
-
+  
       // Revoke MetaMask permissions
       if (window.ethereum) {
         try {
@@ -242,14 +258,14 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
           console.log('Permission revoke error:', error);
         }
       }
-
+  
       // Force disconnect
       if (window.ethereum?.selectedAddress) {
         await window.ethereum.request({
           method: 'eth_accounts'
         });
       }
-
+  
       // Redirect to language selector
       window.location.href = '/language-selector';
     } catch (error) {
@@ -257,7 +273,8 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       // Even on error, redirect to language selector
       window.location.href = '/language-selector';
     }
-  }, [address]);
+  }, []);
+  
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -337,3 +354,4 @@ export function useWeb3() {
   }
   return context;
 }
+// src/components/providers/web3-provider.tsx

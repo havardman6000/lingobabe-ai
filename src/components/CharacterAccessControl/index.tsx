@@ -1,9 +1,9 @@
-// src/components/CharacterAccessControl/index.tsx
 import React, { useState, useEffect } from 'react';
 import { useWeb3 } from '@/components/providers/web3-provider';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AccessStatus } from '@/types/accessStatus';
+import { useRouter } from 'next/navigation';
 
 interface CharacterAccessControlProps {
   characterId: string;
@@ -23,12 +23,14 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [accessCost, setAccessCost] = useState(10);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const router = useRouter();
 
-  // Check if user has access to this character
+  // Check if user has access to this character - default to NO ACCESS
   useEffect(() => {
     const checkAccess = async () => {
       if (!window.tokenManager?.initialized || !address || !characterId) {
         setIsChecking(false);
+        setHasAccess(false); // Default to no access
         return;
       }
 
@@ -40,6 +42,11 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
           setHasAccess(true);
           // Automatically proceed if access is granted
           onAccessGranted();
+        } else {
+          // Ensure local storage is cleared if no access
+          const accessKey = `character_access_${address.toLowerCase()}_${characterId}`;
+          localStorage.removeItem(accessKey);
+          setHasAccess(false);
         }
         
         // Get access cost
@@ -48,6 +55,7 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
       } catch (error: any) {
         console.error('Error checking access:', error);
         setError(error.message || 'Failed to check access status');
+        setHasAccess(false); // Default to no access on error
       } finally {
         setIsChecking(false);
       }
@@ -56,13 +64,28 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
     checkAccess();
   }, [address, characterId, onAccessGranted]);
 
+  const refreshTokenBalance = async () => {
+    if (!window.tokenManager?.initialized || !address) return;
+    
+    try {
+      const newBalance = await window.tokenManager.getBalance(address);
+      // Dispatch an event that the web3-provider can listen for
+      window.dispatchEvent(new CustomEvent('balanceRefreshNeeded', {
+        detail: { address }
+      }));
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+    }
+  };
   // Listen for access status changes
   useEffect(() => {
     const handleAccessChange = (event: Event) => {
       const customEvent = event as CustomEvent<AccessStatus>;
       if (customEvent.detail?.characterId === characterId) {
-        setHasAccess(customEvent.detail.hasAccess);
-        if (customEvent.detail.hasAccess) {
+        const newHasAccess = customEvent.detail.hasAccess === true;
+        setHasAccess(newHasAccess);
+        
+        if (newHasAccess) {
           setShowSuccessMessage(true);
           setTimeout(() => {
             onAccessGranted();
@@ -70,13 +93,76 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
         }
       }
     };
+    
+   
+    
+    const handleChatCompleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{characterId: string}>;
+      if (customEvent.detail?.characterId === characterId && address) {
+        setHasAccess(false);
+        
+        // Also clear local storage when chat is completed
+        const accessKey = `character_access_${address.toLowerCase()}_${characterId}`;
+        localStorage.removeItem(accessKey);
+      }
+    };
 
     window.addEventListener('accessStatusChanged', handleAccessChange);
+    window.addEventListener('chatCompleted', handleChatCompleted);
+    
     return () => {
       window.removeEventListener('accessStatusChanged', handleAccessChange);
+      window.removeEventListener('chatCompleted', handleChatCompleted);
     };
-  }, [characterId, onAccessGranted]);
+  }, [characterId, onAccessGranted, address]);
 
+  useEffect(() => {
+    const checkReturnFromFaucet = () => {
+      const returning = sessionStorage.getItem('returning_from_faucet');
+      if (returning === 'true') {
+        // Clear the flag
+        sessionStorage.removeItem('returning_from_faucet');
+        // Refresh the balance with a slight delay to ensure transaction is processed
+        setTimeout(refreshBalance, 1000);
+      }
+    };
+    
+    checkReturnFromFaucet();
+  }, []);
+
+  const refreshBalance = async () => {
+    if (!window.tokenManager?.initialized || !address) return;
+    
+    try {
+      const newBalance = await window.tokenManager.getBalance(address);
+      // Manually dispatch an event that other components can listen for
+      window.dispatchEvent(new CustomEvent('balanceChanged', {
+        detail: { address, balance: newBalance }
+      }));
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+    }
+  };
+  
+  
+  useEffect(() => {
+    // This will run when component mounts or when user returns to this page
+    const refreshOnFocus = () => refreshBalance();
+    
+    // Set up refresh on window focus (helps when returning from faucet)
+    window.addEventListener('focus', refreshOnFocus);
+    
+    // Call once on mount
+    refreshBalance();
+    
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus);
+    };
+  }, [address]);
+
+
+
+  
   const handlePayForAccess = async () => {
     if (!window.tokenManager?.initialized || !address) {
       setError('Wallet not connected properly');
@@ -87,14 +173,37 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
     setIsPaying(true);
 
     try {
-      const result = await window.tokenManager.payForAccess(characterId);
-      
-      if (result.success) {
+      // Double-check current access status
+      const currentStatus = await window.tokenManager.checkAccess(characterId);
+      if (currentStatus.hasAccess) {
+        // Already has access, just proceed
         setHasAccess(true);
         setShowSuccessMessage(true);
+        await refreshTokenBalance();
+
         setTimeout(() => {
           onAccessGranted();
         }, 2000);
+        return;
+      }
+      
+      // Process payment
+      const result = await window.tokenManager.payForAccess(characterId);
+      
+      if (result.success) {
+        // Verify access was actually granted
+        const verifyResult = await window.tokenManager.checkAccess(characterId); 
+        if (verifyResult.hasAccess) {
+          await refreshBalance();
+
+          setHasAccess(true);
+          setShowSuccessMessage(true);
+          setTimeout(() => {
+            onAccessGranted();
+          }, 2000);
+        } else {
+          setError('Access verification failed. Please try again.');
+        }
       } else {
         setError('Payment failed. Please try again.');
       }
@@ -131,6 +240,7 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
     }
     return null; // Access granted, no need to show anything
   }
+  
 
   // Otherwise show payment UI
   return (
@@ -169,9 +279,21 @@ const CharacterAccessControl: React.FC<CharacterAccessControlProps> = ({
         
         {parseFloat(balance || '0') < accessCost && (
           <Alert className="mt-2 bg-blue-900 border-blue-700 text-blue-100">
-            <AlertDescription>
-              You need more LBAI tokens. Visit the faucet to claim tokens.
-            </AlertDescription>
+            <div className="flex flex-col space-y-3">
+              <AlertDescription>
+                You need more LBAI tokens. Visit the faucet to claim tokens.
+              </AlertDescription>
+              <Button 
+        onClick={() => {
+          // Set a flag that we're coming from this page
+          sessionStorage.setItem('returning_from_faucet', 'true');
+          router.push('/faucet');
+        }}
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+      >
+        Visit Faucet
+      </Button>
+            </div>
           </Alert>
         )}
       </div>

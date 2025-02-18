@@ -1,4 +1,4 @@
-// src/app/chat/japanese/page.tsx
+// src/app/chat/Chinese/page.tsx
 'use client'
 
 import { BackButton } from '@/components/BackButton';

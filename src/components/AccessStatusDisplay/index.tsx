@@ -13,29 +13,69 @@ const AccessStatusDisplay: React.FC<AccessStatusDisplayProps> = ({
 }) => {
   const { address } = useWeb3();
   const [accessList, setAccessList] = useState<AccessStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const loadAccessStatus = () => {
-      if (!address || typeof window === 'undefined') return;
-      
-      const accessItems: AccessStatus[] = [];
-      
-      // Iterate through localStorage to find all access entries
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('character_access_' + address.toLowerCase())) {
-          try {
-            const accessData = JSON.parse(localStorage.getItem(key) || '');
-            if (accessData && accessData.hasAccess && accessData.characterId) {
-              accessItems.push(accessData);
-            }
-          } catch (e) {
-            console.warn('Invalid access data format', e);
-          }
-        }
+    const loadAccessStatus = async () => {
+      if (!address || typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
       }
       
-      setAccessList(accessItems);
+      setIsLoading(true);
+      const accessItems: AccessStatus[] = [];
+      
+      try {
+        // First verify accesses through contract if token manager is available
+        if (window.tokenManager?.initialized) {
+          // Get all character IDs
+          const characterIds = Object.keys(characters);
+          
+          for (const characterId of characterIds) {
+            try {
+              const accessResult = await window.tokenManager.checkAccess(characterId);
+              if (accessResult.hasAccess) {
+                accessItems.push({
+                  hasAccess: true,
+                  characterId,
+                  accessGranted: accessResult.accessGranted || Date.now()
+                });
+              }
+            } catch (error) {
+              console.warn(`Failed to check access for ${characterId}:`, error);
+              // Skip this character if there's an error
+            }
+          }
+        } else {
+          // Fallback to localStorage if token manager isn't available
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('character_access_' + address.toLowerCase())) {
+              try {
+                const accessData = JSON.parse(localStorage.getItem(key) || '');
+                if (accessData && accessData.hasAccess && accessData.characterId) {
+                  // Double-verify this character id is valid
+                  if (accessData.characterId in characters) {
+                    accessItems.push(accessData);
+                  } else {
+                    // Remove invalid entries
+                    localStorage.removeItem(key);
+                  }
+                }
+              } catch (e) {
+                console.warn('Invalid access data format', e);
+                // Remove corrupted entries
+                localStorage.removeItem(key);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading access status:', error);
+      } finally {
+        setAccessList(accessItems);
+        setIsLoading(false);
+      }
     };
     
     loadAccessStatus();
@@ -57,6 +97,14 @@ const AccessStatusDisplay: React.FC<AccessStatusDisplayProps> = ({
       window.removeEventListener('chatCompleted', handleChatCompleted);
     };
   }, [address]);
+  
+  if (isLoading) {
+    return (
+      <div className={`bg-gray-800 border border-gray-700 rounded-lg p-3 ${className}`}>
+        <p className="text-gray-400 text-sm animate-pulse">Loading access status...</p>
+      </div>
+    );
+  }
   
   if (accessList.length === 0) {
     return null;
