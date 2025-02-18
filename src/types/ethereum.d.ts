@@ -11,17 +11,19 @@ export interface ProviderRpcError extends Error {
 }
 
 export interface EthereumProvider {
+  currentProvider?: any;
   isMetaMask?: boolean;
-  request: (args: RequestArguments) => Promise<any>;
+  request: (args: { method: string; params?: any[] }) => Promise<any>;
   on: (event: string, callback: (params: any) => void) => void;
   removeListener: (event: string, callback: (params: any) => void) => void;
   selectedAddress?: string | null;
-  chainId?: string;
 }
 
 declare global {
   interface Window {
     ethereum?: EthereumProvider;
+    tokenManager?: any;
+    Web3?: any;
   }
 }
 

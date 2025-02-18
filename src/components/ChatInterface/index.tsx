@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -207,54 +207,37 @@ export function ChatInterface() {
       showErrorMessage('Invalid input or connection state');
       return;
     }
-
+  
     if (messageTracker.current && !messageTracker.current.canSendMessage()) {
-      showErrorMessage('Message limit reached or sync in progress');
+      showErrorMessage('You have no messages remaining. Please purchase more messages.');
       return;
     }
-
-    if (!window.tokenManager?.initialized) {
-      try {
-        const web3 = new Web3(window.ethereum);
-        await window.tokenManager.initialize(web3);
-      } catch (error) {
-        showErrorMessage('Wallet connection error. Please reconnect.');
-        return;
-      }
-    }
-
+  
     try {
-      const allowance = await window.tokenManager.checkTokenAllowance();
-      console.log('Current allowance:', allowance);
-
-      if (!allowance.hasEnoughTokens) {
-        showErrorMessage(`Insufficient tokens. Balance: ${allowance.balance} TLBAI`);
-        return;
-      }
-
       const selectedOption = currentSceneOptions.find(opt => {
         const primaryText = opt.chinese || opt.japanese || opt.korean || opt.spanish;
         return primaryText === input.trim();
       });
-
+  
       if (!selectedOption) {
         showErrorMessage('Please select a valid response option');
         return;
       }
-
+  
+      // Use local message tracking instead of blockchain transaction
       if (messageTracker.current) {
         await messageTracker.current.handleMessageSent();
       }
-
-      await window.tokenManager.incrementMessageCount();
-
+  
+      // Update local stats using messageStore
       const newStats = await messageStore.useMessage(address);
       if (newStats) {
         setMessageStats(newStats);
       } else {
-        showErrorMessage('Failed to retrieve message stats.');
+        showErrorMessage('Failed to send message. No messages remaining.');
+        return;
       }
-
+  
       const messageContent: MessageContent = {
         english: selectedOption.english,
         chinese: selectedOption.chinese,
@@ -266,47 +249,47 @@ export function ChatInterface() {
         spanish: selectedOption.spanish,
         video: selectedOption.video
       };
-
+  
       actions.addMessage({
         role: 'user',
         content: messageContent
       });
-
+  
       if (typeof selectedOption.points === 'number') {
         actions.updateHappiness(selectedCharacter, selectedOption.points);
-
+  
         const happinessKey = `lingobabe_happiness_${address.toLowerCase()}_${selectedCharacter}`;
         const currentHappiness = happiness[selectedCharacter] || 50;
         const newHappiness = Math.min(100, Math.max(0, currentHappiness + selectedOption.points));
         localStorage.setItem(happinessKey, newHappiness.toString());
       }
-
+  
       if (selectedOption.response) {
         actions.addMessage({
           role: 'assistant',
           content: selectedOption.response
         });
-
+  
         if (selectedOption.response.video) {
           setCurrentVideo(selectedOption.response.video);
         }
-
+  
         const primaryText = selectedOption.response.chinese ||
-                            selectedOption.response.japanese ||
-                            selectedOption.response.korean ||
-                            selectedOption.response.spanish;
+                          selectedOption.response.japanese ||
+                          selectedOption.response.korean ||
+                          selectedOption.response.spanish;
         if (primaryText) {
           await playAudio(primaryText);
         }
       }
-
+  
       if (currentScene < 5) {
         setIsTransitioning(true);
-
+  
         localStorage.setItem(`scene_${selectedCharacter}_${address.toLowerCase()}`,
           (currentScene + 1).toString()
         );
-
+  
         setTimeout(() => {
           actions.setScene(currentScene + 1);
           setIsTransitioning(false);
@@ -315,13 +298,10 @@ export function ChatInterface() {
         setShowEndPopup(true);
         localStorage.removeItem(`scene_${selectedCharacter}_${address.toLowerCase()}`);
       }
-
+  
       setInput('');
       setShowOptions(false);
-
-      if (messageTracker.current) {
-        await messageTracker.current.handleMessageSent();
-      }
+  
     } catch (error: any) {
       console.error('Chat error:', error);
       showErrorMessage(error.message || 'Failed to send message');
@@ -392,12 +372,14 @@ export function ChatInterface() {
         </div>
 
         <div className="fixed bottom-24 right-4 z-50">
-          <LocalMessageTracker
-            ref={messageTracker}
-            onUpdate={(stats) => {
-              setMessageStats(stats);
-            }}
-          />
+            <LocalMessageTracker
+    ref={messageTracker}
+    onUpdate={useCallback((stats: MessageStats) => {
+      if (JSON.stringify(stats) !== JSON.stringify(messageStats)) {
+        setMessageStats(stats);
+      }
+    }, [messageStats])}
+  />
         </div>
       </div>
 

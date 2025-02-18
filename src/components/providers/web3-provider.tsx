@@ -1,8 +1,9 @@
-// src/components/providers/web3-provider.tsx
-"use client"; 
+"use client";
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import Web3 from 'web3';
 import { useRouter } from 'next/navigation';
+import { EthereumProvider } from '@/types/ethereum';
+import { messageStore } from '@/services/messageStore';
 
 interface Web3ContextType {
   address: string | null;
@@ -37,7 +38,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const validateConnection = async (): Promise<boolean> => {
-    if (!window.ethereum) return false;
+    if (typeof window === 'undefined' || !window.ethereum) return false;
     try {
       // Request accounts to ensure we have up-to-date access
       const accounts = await window.ethereum.request({
@@ -100,16 +101,54 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const web3 = new Web3(window.ethereum);
       await window.tokenManager.initialize(web3);
 
-      const [newBalance, allowance] = await Promise.all([
-        window.tokenManager.getBalance(userAddress),
-        window.tokenManager.checkTokenAllowance()
-      ]);
+      // Get balance from blockchain
+      const newBalance = await window.tokenManager.getBalance(userAddress);
 
+      // Get allowance and sync with local storage data
+      let messagesCount = 0;
+      try {
+        // First try to get local message stats
+        if (typeof messageStore !== 'undefined' &&
+            messageStore &&
+            typeof messageStore.syncWithBlockchain === 'function') {
+          const syncedStats = await messageStore.syncWithBlockchain(userAddress);
+          if (syncedStats) {
+            messagesCount = syncedStats.messagesRemaining;
+          }
+        } else {
+          // Fallback to direct contract call if messageStore not available
+          const allowance = await window.tokenManager.checkTokenAllowance();
+          messagesCount = allowance.messagesRemaining;
+        }
+      } catch (statsError) {
+        console.warn('Error getting message stats:', statsError);
+        // Try direct contract call as fallback
+        try {
+          const allowance = await window.tokenManager.checkTokenAllowance();
+          messagesCount = allowance.messagesRemaining;
+        } catch (allowanceError) {
+          console.error('Failed to get message allowance:', allowanceError);
+          // Keep whatever value was already in state
+        }
+      }
+
+      // Update state
       setBalance(newBalance);
-      setMessagesRemaining(allowance.messagesRemaining);
+      setMessagesRemaining(messagesCount);
 
+      // Save connection status
       localStorage.setItem('walletConnected', 'true');
       localStorage.setItem('userAddress', userAddress);
+
+      // Make sure messages are correctly saved to storage
+      if (typeof messageStore !== 'undefined' &&
+          messageStore &&
+          typeof messageStore.getStats === 'function') {
+        const currentStats = messageStore.getStats(userAddress);
+
+        // Update global stats storage to ensure persistence across sessions
+        localStorage.setItem('lingobabe_messages_global', JSON.stringify(currentStats));
+      }
     } catch (error: any) {
       console.error('Error updating user info:', error);
       setError(error.message || 'Failed to update user info');
@@ -119,36 +158,50 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const connect = useCallback(async () => {
     setError(null);
     setIsLoading(true);
-  
+
     try {
       console.log('Connecting to Web3Provider...');
       if (!isMetaMaskInstalled) {
         throw new Error('Please install MetaMask to continue');
       }
-  
+
       // First switch to the correct network
       await switchToMonadTestnet();
       console.log('Switched to Monad Testnet.');
-  
+
       // Then request account access - this triggers the MetaMask popup
       const accounts = await window.ethereum?.request({
         method: 'eth_requestAccounts'
       }) as string[];
-  
+
       if (!accounts || accounts.length === 0) {
         throw new Error('Please connect your MetaMask wallet');
       }
-  
+
       // Verify connection was successful
       const isValid = await validateConnection();
       if (!isValid) {
         throw new Error('Failed to connect to Monad network');
       }
-  
+
+      // Set address before updating info
       setAddress(accounts[0]);
+
+      // Important: Migrate message counts from global storage to address-specific storage
+      if (typeof messageStore !== 'undefined' &&
+          messageStore &&
+          typeof messageStore.migrateStatsToAddress === 'function') {
+        try {
+          messageStore.migrateStatsToAddress(accounts[0]);
+        } catch (migrateError) {
+          console.warn('Failed to migrate message stats:', migrateError);
+          // Continue connection process even if migration fails
+        }
+      }
+
       await updateUserInfo(accounts[0]);
       console.log('Web3Provider connected successfully.');
-  
+
       // Ensure we don't redirect to home after successful connection
       const currentPath = window.location.pathname;
       if (currentPath === '/') {
@@ -165,56 +218,51 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   }, [isMetaMaskInstalled, router, updateUserInfo]);
-  
-  // Inside disconnect function in web3-provider.tsx
 
-// Inside disconnect function in web3-provider.tsx
+  const disconnect = useCallback(async () => {
+    try {
+      // Clear all storage immediately
+      sessionStorage.clear();
+      localStorage.clear();
 
-const disconnect = useCallback(async () => {
-  try {
-    // Clear all storage immediately
-    sessionStorage.clear();
-    localStorage.clear();
+      // Clear state
+      setAddress(null);
+      setBalance('0');
+      setMessagesRemaining(0);
+      setError(null);
 
-    // Clear state
-    setAddress(null);
-    setBalance('0');
-    setMessagesRemaining(0);
-    setError(null);
-
-    // Clear token manager state
-    if (window.tokenManager) {
-      window.tokenManager.initialized = false;
-    }
-
-    // Revoke MetaMask permissions
-    if (window.ethereum) {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_revokePermissions',
-          params: [{ eth_accounts: {} }]
-        });
-      } catch (error) {
-        console.log('Permission revoke error:', error);
+      // Clear token manager state
+      if (window.tokenManager) {
+        window.tokenManager.initialized = false;
       }
+
+      // Revoke MetaMask permissions
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_revokePermissions',
+            params: [{ eth_accounts: {} }]
+          });
+        } catch (error) {
+          console.log('Permission revoke error:', error);
+        }
+      }
+
+      // Force disconnect
+      if (window.ethereum?.selectedAddress) {
+        await window.ethereum.request({
+          method: 'eth_accounts'
+        });
+      }
+
+      // Redirect to language selector
+      window.location.href = '/language-selector';
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      // Even on error, redirect to language selector
+      window.location.href = '/language-selector';
     }
-
-    // Force disconnect
-    if (window.ethereum?.selectedAddress) {
-      await window.ethereum.request({
-        method: 'eth_accounts'
-      });
-    }
-
-    // Redirect to language selector
-    window.location.href = '/language-selector';
-  } catch (error) {
-    console.error('Disconnect error:', error);
-    // Even on error, redirect to language selector
-    window.location.href = '/language-selector';
-  }
-}, []);
-
+  }, []);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -294,69 +342,3 @@ export function useWeb3() {
   }
   return context;
 }
-
-// src/app/language-selector/page.tsx
-export default function LanguageSelection() {
-  const router = useRouter();
-  const { isConnected, isLoading } = useWeb3();
-  const [error, setError] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
-
-  // Prevent redirect if loading or connected
-  useEffect(() => {
-    if (!isLoading && !isConnected) {
-      router.replace('/');
-    }
-  }, [isLoading, isConnected, router]);
-
-  const handleLanguageSelect = async (languageId: string) => {
-    try {
-      if (!window.ethereum) {
-        setError('Please install MetaMask!');
-        return;
-      }
-
-      // Verify connection
-      const accounts = await window.ethereum.request({
-        method: 'eth_accounts'
-      }) as string[];
-
-      if (!accounts || accounts.length === 0) {
-        setError('Please connect your wallet!');
-        return;
-      }
-
-      // Verify network
-      const chainId = await window.ethereum.request({
-        method: 'eth_chainId'
-      });
-
-      if (chainId !== '0x279f') {
-        setError('Please connect to Monad network!');
-        return;
-      }
-
-      setSelectedLanguage(languageId);
-      router.push(`/chat/${languageId}`);
-
-    } catch (error) {
-      console.error('Language selection error:', error);
-      setError('An error occurred. Please try again.');
-    }
-  };
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  return (
-    <div>
-      {/* Your language selection UI goes here */}
-      {error && <div>{error}</div>}
-      {/* Example buttons for language selection */}
-      <button onClick={() => handleLanguageSelect('en')}>English</button>
-      <button onClick={() => handleLanguageSelect('es')}>Spanish</button>
-    </div>
-  );
-}
-// src/components/providers/web3-provider.tsx 

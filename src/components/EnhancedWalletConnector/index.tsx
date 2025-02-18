@@ -7,15 +7,70 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useWeb3 } from '@/components/providers/web3-provider';
 import { useTokenManager } from '@/components/providers/TokenManagerContext';
+import { messageStore } from '@/services/messageStore';
+import { MessageStats } from '@/types/messageStore';
 
 export default function EnhancedWalletConnector() {
   const router = useRouter();
   const { isConnected, connect: providerConnect, disconnect: providerDisconnect, address } = useWeb3();
-  const { messagesRemaining, canPurchasePackage, refreshData } = useTokenManager();
+  const { refreshData } = useTokenManager();
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
+  const [messagesRemaining, setMessagesRemaining] = useState(50);
+
+  useEffect(() => {
+    const loadMessageStats = () => {
+      if (address) {
+        const stats = messageStore.getStats(address);
+        setMessagesRemaining(stats.messagesRemaining);
+      }
+    };
+
+    loadMessageStats();
+
+    // Define event handlers that use loadMessageStats directly
+    function handleStorageChange(e: StorageEvent) {
+      if (e.key && e.key.startsWith('lingobabe_messages_') && address) {
+        loadMessageStats();
+      }
+    }
+    
+    function handleStatsUpdated(e: Event) {
+          const customEvent = e as CustomEvent<MessageStats>;
+      if (customEvent.detail && address) {
+        setMessagesRemaining(customEvent.detail.messagesRemaining);
+      }
+    }
+    
+    function handleMessageUsed(e: Event) {
+      const customEvent = e as CustomEvent<{remaining: number}>;
+      if (customEvent.detail && address) {
+        setMessagesRemaining(customEvent.detail.remaining);
+      }
+    }
+    
+    function handleRefresh() {
+      loadMessageStats();
+    }
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('messageStatsUpdated', handleStatsUpdated);
+    window.addEventListener('messageUsed', handleMessageUsed);
+    window.addEventListener('refreshMessageTrackers', handleRefresh);
+
+    // Poll for changes every 2 seconds as a backup
+    const interval = setInterval(loadMessageStats, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('messageStatsUpdated', handleStatsUpdated);
+      window.removeEventListener('messageUsed', handleMessageUsed);
+      window.removeEventListener('refreshMessageTrackers', handleRefresh);
+      clearInterval(interval);
+    };
+  }, [address]);
 
   const handleDisconnect = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -58,15 +113,22 @@ export default function EnhancedWalletConnector() {
     try {
       await providerConnect();
       await refreshData(); // Refresh data after connecting
+      
+      // Load message stats after connecting
+      if (address) {
+        const stats = messageStore.getStats(address);
+        setMessagesRemaining(stats.messagesRemaining);
+      }
     } catch (error: any) {
       setError(error.message || 'Failed to connect wallet');
       setShowError(true);
     }
   };
 
-  const handleSendMessage = async () => {
-    // Logic to send a message
-    await refreshData(); // Refresh data after sending a message
+  // Helper to dispatch a custom event that other components can listen for
+  const notifyMessageUsed = () => {
+    const event = new CustomEvent('messageCountUpdated');
+    window.dispatchEvent(event);
   };
 
   if (!isConnected) {
@@ -100,7 +162,9 @@ export default function EnhancedWalletConnector() {
         onClick={() => setShowDisconnect(!showDisconnect)}
       >
         <div className="bg-white/50 px-4 py-2 rounded-lg">
-          <div className="text-sm">{messagesRemaining}/50 Messages</div>
+          <div className="text-sm">
+            <span className="text-pink-500">{messagesRemaining}</span>/50 Messages
+          </div>
         </div>
 
         <div className="flex items-center gap-2 px-4 py-2 bg-white/50 rounded-lg">

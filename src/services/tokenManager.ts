@@ -1,20 +1,41 @@
 // src/services/tokenManager.ts
-
 import Web3 from 'web3';
 import { Contract } from 'web3-eth-contract';
 import { AbiItem } from 'web3-utils';
+import { messageStore } from './messageStore';
+import { EthereumProvider } from '../types/ethereum';
+
+// Type definitions for improved type safety
+declare global {
+  interface Window {
+    tokenManager?: TokenManager;
+  }
+}
+
+
+interface TokenAllowanceResult {
+  messagesRemaining: number;
+  blockchainRemaining?: number;
+  hasEnoughTokens: boolean;
+  canPurchasePackage: boolean;
+  balance?: string;
+}
+
+interface TransactionResult {
+  success: boolean;
+  hash?: string;
+}
 
 class TokenManager {
+  public initialized: boolean = false;
   private web3: Web3 | null = null;
   private contract: Contract<any> | null = null;
-  private initialized: boolean = false;
   private readonly contractAddress: string = '0x6D7C11bBFeE16e49C2545501D4aC548F0a6EB05B';
   private readonly signatureKey = 'monad_explorer_signature';
   private readonly walletConnectedKey = 'walletConnected';
   private readonly userAddressKey = 'userAddress';
-  private messageCount: number = 0;
 
-  private readonly abi: AbiItem[] = [ {
+  private readonly abi: AbiItem[] = [{
     "inputs": [{"type": "address", "name": "account"}],
     "name": "balanceOf",
     "outputs": [{"type": "uint256", "name": ""}],
@@ -57,13 +78,6 @@ class TokenManager {
     "type": "function"
   }];
 
-  private cleanup() {
-    this.web3 = null;
-    this.contract = null;
-    this.initialized = false;
-  }
-
-
   async disconnect(): Promise<boolean> {
     try {
       // Clear instance variables
@@ -72,19 +86,21 @@ class TokenManager {
       this.initialized = false;
 
       // Clear all storage
-      localStorage.removeItem(this.walletConnectedKey);
-      localStorage.removeItem(this.userAddressKey);
-      localStorage.removeItem(this.signatureKey);
-      
-      // Clear session data
-      sessionStorage.clear();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(this.walletConnectedKey);
+        localStorage.removeItem(this.userAddressKey);
+        localStorage.removeItem(this.signatureKey);
+        
+        // Clear session data
+        sessionStorage.clear();
 
-      // Remove MetaMask event listeners
-      if (window.ethereum) {
-        const handleAccountsChanged = () => {};
-        const handleChainChanged = () => {};
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        // Remove MetaMask event listeners
+        if (window.ethereum) {
+          const handleAccountsChanged = () => {};
+          const handleChainChanged = () => {};
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+        }
       }
 
       return true;
@@ -93,21 +109,37 @@ class TokenManager {
       return true; // Return true even on error to continue disconnection flow
     }
   }
-  clearStoredSignature() {
-    localStorage.removeItem(this.signatureKey);
+
+  clearStoredSignature(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(this.signatureKey);
+    }
   }
 
-
-
-
-  
   async initialize(web3Instance: Web3): Promise<boolean> {
     try {
-      if (!window.ethereum) throw new Error('No Ethereum provider found');
+      if (typeof window === 'undefined' || !window.ethereum) {
+        console.warn('No Ethereum provider found');
+        return false;
+      }
 
       this.web3 = web3Instance;
-      const accounts = await this.web3.eth.getAccounts();
-      if (!accounts?.length) throw new Error('No accounts available');
+      
+      // Check accounts more safely with proper typing
+      let accounts: string[] = [];
+      try {
+        accounts = await this.web3.eth.getAccounts();
+      } catch (accountError) {
+        console.warn('Error fetching accounts:', accountError);
+        accounts = [];
+      }
+
+      // Handle case when no accounts are available, don't throw error
+      if (!accounts || accounts.length === 0) {
+        console.warn('No accounts available. User may need to connect wallet first.');
+        this.initialized = false;
+        return false;
+      }
 
       // Initialize contract
       this.contract = new this.web3.eth.Contract(
@@ -115,19 +147,30 @@ class TokenManager {
         this.contractAddress,
         { from: accounts[0] }
       );
-
-      // Load saved message count from contract
-      this.messageCount = parseInt(await this.contract.methods.getMessageCount(accounts[0]).call());
       
       this.initialized = true;
+      
+      // Sync message store with blockchain data - don't throw if this fails
+      try {
+        if (typeof messageStore !== 'undefined' && 
+            messageStore && 
+            typeof messageStore.syncWithBlockchain === 'function') {
+          await messageStore.syncWithBlockchain(accounts[0]);
+        }
+      } catch (syncError) {
+        console.warn('Failed to sync with blockchain:', syncError);
+        // Continue initialization even if sync fails
+      }
+      
       return true;
     } catch (error) {
       console.error('TokenManager initialization failed:', error);
-      throw error;
+      this.initialized = false;
+      return false;
     }
   }
 
-  async incrementMessageCount(): Promise<{ newBalance: string; messagesRemaining: number }> {
+  async incrementMessageCount(): Promise<TransactionResult> {
     if (!this.initialized || !this.contract || !this.web3) {
       throw new Error('TokenManager not initialized');
     }
@@ -136,29 +179,13 @@ class TokenManager {
       const accounts = await this.web3.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
 
-      // Check if user has enough tokens
-      const allowance = await this.checkTokenAllowance();
-      if (!allowance.hasEnoughTokens) {
-        throw new Error('Insufficient tokens. Please purchase more tokens.');
-      }
-      if (allowance.messagesRemaining <= 0) {
-        throw new Error('No messages remaining. Please purchase a new package.');
-      }
-
-      // Increment message count on chain
-      await this.contract.methods.incrementMessageCount(accounts[0]).send({
+      const result = await this.contract.methods.incrementMessageCount(accounts[0]).send({
         from: accounts[0]
       });
 
-      this.messageCount++;
-
-      // Get updated balances
-      const balance = await this.getBalance(accounts[0]);
-      const messagesRemaining = await this.contract.methods.getMessagesRemaining(accounts[0]).call();
-
       return {
-        newBalance: balance,
-        messagesRemaining: Number(messagesRemaining)
+        success: true,
+        hash: result.transactionHash
       };
     } catch (error) {
       console.error('Failed to increment message count:', error);
@@ -166,7 +193,7 @@ class TokenManager {
     }
   }
 
-  async purchaseMessagePackage(): Promise<{ newBalance: string; messagesRemaining: number }> {
+  async purchaseMessagePackage(): Promise<TransactionResult> {
     if (!this.initialized || !this.contract || !this.web3) {
       throw new Error('TokenManager not initialized');
     }
@@ -175,16 +202,32 @@ class TokenManager {
       const accounts = await this.web3.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
 
-      await this.contract.methods.purchaseMessagePackage(accounts[0]).send({
+      // Get current balance
+      const currentBalance = await this.getBalance(accounts[0]);
+      if (parseFloat(currentBalance) < 50) {
+        throw new Error('Insufficient LBAI tokens. You need at least 50 LBAI to purchase a message package.');
+      }
+
+      // Make the blockchain transaction
+      const result = await this.contract.methods.purchaseMessagePackage(accounts[0]).send({
         from: accounts[0]
       });
 
-      const balance = await this.getBalance(accounts[0]);
-      const messagesRemaining = await this.contract.methods.getMessagesRemaining(accounts[0]).call();
+      // Update local message store after blockchain transaction
+      if (typeof messageStore !== 'undefined' && 
+          messageStore && 
+          typeof messageStore.purchasePackage === 'function') {
+        await messageStore.purchasePackage(accounts[0]);
+      }
+      
+      // Refresh all components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('refreshMessageTrackers'));
+      }
 
       return {
-        newBalance: balance,
-        messagesRemaining: Number(messagesRemaining)
+        success: true,
+        hash: result.transactionHash
       };
     } catch (error) {
       console.error('Failed to purchase message package:', error);
@@ -192,7 +235,7 @@ class TokenManager {
     }
   }
 
-  async claimFaucet(): Promise<void> {
+  async claimFaucet(): Promise<TransactionResult> {
     if (!this.initialized || !this.contract || !this.web3) {
       throw new Error('TokenManager not initialized');
     }
@@ -201,33 +244,17 @@ class TokenManager {
       const accounts = await this.web3.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
 
-      await this.contract.methods.claimFaucet().send({
+      const result = await this.contract.methods.claimFaucet().send({
         from: accounts[0]
       });
+
+      return {
+        success: true,
+        hash: result.transactionHash
+      };
     } catch (error) {
       console.error('Failed to claim from faucet:', error);
       throw error;
-    }
-  }
-
-
-  private async getGasPrice(): Promise<string> {
-    if (!this.web3) throw new Error('Web3 not initialized');
-
-    try {
-      // Use a default gas price if getGasPrice fails
-      const defaultGasPrice = '1000000000'; // 1 gwei
-
-      try {
-        const gasPrice = await this.web3.eth.getGasPrice();
-        return gasPrice.toString();
-      } catch (error) {
-        console.warn('Failed to get gas price, using default:', error);
-        return defaultGasPrice;
-      }
-    } catch (error) {
-      console.error('Gas price error:', error);
-      return '1000000000'; // Fallback to 1 gwei
     }
   }
 
@@ -247,9 +274,8 @@ class TokenManager {
       throw error;
     }
   }
-
   
-  async checkTokenAllowance() {
+  async checkTokenAllowance(): Promise<TokenAllowanceResult> {
     if (!this.initialized || !this.contract || !this.web3) {
       throw new Error('TokenManager not initialized');
     }
@@ -257,41 +283,34 @@ class TokenManager {
     try {
       const accounts = await this.web3.eth.getAccounts();
       if (!accounts?.length) throw new Error('No accounts available');
-      const balanceWei = await this.contract.methods.balanceOf(accounts[0]).call();
-      if (balanceWei === undefined || balanceWei === null) {
-        throw new Error('Balance is undefined or null');
-      }
+      
+      // Get balance and messages remaining from blockchain
       const balance = await this.getBalance(accounts[0]);
-      const remaining = await this.contract.methods.getMessagesRemaining(accounts[0]).call();
-      if (remaining === undefined || remaining === null) {
-        throw new Error('Messages remaining is undefined or null');
+      const blockchainRemaining = await this.contract.methods.getMessagesRemaining(accounts[0]).call();
+      
+      // Get local message tracking data
+      let messagesRemaining = 0;
+      if (typeof messageStore !== 'undefined' && 
+          messageStore && 
+          typeof messageStore.getStats === 'function') {
+        const localStats = messageStore.getStats(accounts[0]);
+        messagesRemaining = localStats.messagesRemaining;
+      } else {
+        messagesRemaining = Number(blockchainRemaining);
       }
   
       return {
-        messagesRemaining: Number(remaining),
+        messagesRemaining,
+        blockchainRemaining: Number(blockchainRemaining),
         hasEnoughTokens: parseFloat(balance) >= 1,
-        canPurchasePackage: parseFloat(balance) 
+        canPurchasePackage: parseFloat(balance) >= 50,
+        balance
       };
     } catch (error) {
       console.error('Failed to check token allowance:', error);
       throw error;
     }
   }
-
-  private async reinitialize(): Promise<void> {
-    if (this.web3) {
-      try {
-        console.log('Reinitializing TokenManager...');
-        await this.initialize(this.web3);
-      } catch (error) {
-        console.error('Reinitialization failed:', error);
-        throw error;
-      }
-    }
-  }
-
-  
 }
 
 export const tokenManager = new TokenManager();
-// src/services/tokenManager.ts
