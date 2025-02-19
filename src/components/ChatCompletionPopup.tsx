@@ -40,3 +40,4 @@ export function ChatCompletionPopup({ language = 'chinese', onClose }: ChatCompl
     </div>
   );
 }
+// src/components/ChatCompletionPopup.tsx

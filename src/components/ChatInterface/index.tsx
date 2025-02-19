@@ -1,4 +1,6 @@
 // src/components/ChatInterface/index.tsx
+
+'use client'
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -24,6 +26,7 @@ export function ChatInterface() {
   const { address } = useWeb3();
   const router = useRouter();
   const messageTracker = useRef<MessageTrackerRef>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Local UI state
   const [input, setInput] = useState('');
@@ -57,7 +60,44 @@ export function ChatInterface() {
     : null;
 
   const currentSceneOptions = character?.scenes[currentScene]?.options || [];
-
+  const checkAccess = async () => {
+    if (!window.tokenManager?.initialized || !address || !selectedCharacter) {
+      setIsCheckingAccess(false);
+      setHasAccess(false);
+      return;
+    }
+  
+    try {
+      setIsCheckingAccess(true);
+      
+      // Check if completion is in progress
+      const completionFlagKey = `completion_in_progress_${address.toLowerCase()}_${selectedCharacter}`;
+      const isCompletionInProgress = localStorage.getItem(completionFlagKey) === 'true';
+      
+      if (isCompletionInProgress || showCompletionPopup) {
+        // If completion is in progress, maintain current access state
+        // to prevent the UI from flashing the access required screen
+        setIsCheckingAccess(false);
+        return;
+      }
+      
+      // Regular access check flow
+      const accessResult = await window.tokenManager.checkAccess(selectedCharacter);
+      setHasAccess(accessResult.hasAccess);
+      
+      // If no access, ensure we clear any stale local storage data
+      if (!accessResult.hasAccess) {
+        const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+        localStorage.removeItem(accessKey);
+      }
+    } catch (error: any) {
+      console.error('Failed to check access:', error);
+      setError(error.message || 'Failed to verify access status');
+      setHasAccess(false); // Default to no access on error
+    } finally {
+      setIsCheckingAccess(false);
+    }
+  };
   const showErrorMessage = (message: string) => {
     setError(message);
     setShowError(true);
@@ -68,37 +108,6 @@ export function ChatInterface() {
   };
 
   // Initialize token manager and check access
-  useEffect(() => {
-    const checkAccess = async () => {
-      if (!window.tokenManager?.initialized || !address || !selectedCharacter) {
-        setIsCheckingAccess(false);
-        setHasAccess(false); // Default to no access
-        return;
-      }
-  
-      try {
-        setIsCheckingAccess(true);
-        const accessResult = await window.tokenManager.checkAccess(selectedCharacter);
-        setHasAccess(accessResult.hasAccess);
-        
-        // If no access, ensure we clear any stale local storage data
-        if (!accessResult.hasAccess) {
-          const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
-          localStorage.removeItem(accessKey);
-        }
-      } catch (error: any) {
-        console.error('Failed to check access:', error);
-        setError(error.message || 'Failed to verify access status');
-        setHasAccess(false); // Default to no access on error
-      } finally {
-        setIsCheckingAccess(false);
-      }
-    };
-  
-    // Just check access if we have a wallet connection
-    checkAccess();
-  }, [address, selectedCharacter]);
-
   // Listen for access status changes
   useEffect(() => {
     const handleAccessChange = (event: Event) => {
@@ -201,7 +210,31 @@ export function ChatInterface() {
     if (audioPlaying) return;
     await playAudio(text);
   };
+useEffect(() => {
+    // If the popup is showing, ensure access check doesn't interfere
+    if (showCompletionPopup && selectedCharacter && address) {
+      // Create a temporary flag in localStorage to indicate completion in process
+      const completionFlagKey = `completion_in_progress_${address.toLowerCase()}_${selectedCharacter}`;
+      localStorage.setItem(completionFlagKey, 'true');
+      
+      // Cleanup when component unmounts or popup closes
+      return () => {
+        localStorage.removeItem(completionFlagKey);
+      };
+    }
+  }, [showCompletionPopup, selectedCharacter, address]);
+  
+  // Then modify the checkAccess function to respect the completion flag
 
+  useEffect(() => {
+    // Use a function within the effect to avoid direct references
+    const performAccessCheck = async () => {
+      await checkAccess();
+    };
+    
+    performAccessCheck();
+    // Use refs for these dependencies to avoid re-renders
+  }, [address, selectedCharacter]);
   const handleSend = async () => {
     if (!input.trim() || !selectedCharacter || !character || isTransitioning || !address) {
       showErrorMessage('Invalid input or connection state');
@@ -258,9 +291,9 @@ export function ChatInterface() {
         }
   
         const primaryText = selectedOption.response.chinese ||
-                            selectedOption.response.japanese ||
-                            selectedOption.response.korean ||
-                            selectedOption.response.spanish;
+                          selectedOption.response.japanese ||
+                          selectedOption.response.korean ||
+                          selectedOption.response.spanish;
         if (primaryText) {
           await playAudio(primaryText);
         }
@@ -268,35 +301,63 @@ export function ChatInterface() {
   
       // Progress to the next scene (local state change, no blockchain needed)
       if (currentScene >= 5) {
-        // IMPORTANT: Mark chat as completed before showing end popup
+        setIsCompleted(true);
         if (window.tokenManager?.initialized && selectedCharacter) {
-          try {
-            // First mark as completed in local storage
-            const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
-            const storedAccess = localStorage.getItem(accessKey);
-            if (storedAccess) {
-              try {
-                const accessData = JSON.parse(storedAccess);
-                accessData.completed = true;
-                accessData.hasAccess = false; // Explicitly revoke access
-                localStorage.setItem(accessKey, JSON.stringify(accessData));
-              } catch (e) {
-                console.error('Error updating access data:', e);
-              }
+          try{
+          const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+          const storedAccess = localStorage.getItem(accessKey);
+          if (storedAccess) {
+            try {
+              const accessData = JSON.parse(storedAccess);
+              accessData.completed = true;
+              // Don't revoke access yet - this prevents the access screen from showing
+              localStorage.setItem(accessKey, JSON.stringify(accessData));
+            } catch (e) {
+              console.error('Error updating access data:', e);
             }
-            
-            // Then call token manager to revoke access in blockchain
-            window.tokenManager.markChatCompleted(selectedCharacter);
-            
-            // Update local state
-            setHasAccess(false);
-          } catch (completionError) {
-            console.error('Error marking chat as completed:', completionError);
           }
+        } catch (completionError) {
+          console.error('Error marking chat as completed:', completionError);
         }
+      }
+        // IMPORTANT: Mark chat as completed before showing end popup
+        // if (selectedCharacter) {
+        //   try {
+        //     // Update local storage to mark completion
+        //     const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+        //     const storedAccess = localStorage.getItem(accessKey);
+        //     if (storedAccess) {
+        //       try {
+        //         const accessData = JSON.parse(storedAccess);
+        //         accessData.completed = true;
+        //         accessData.hasAccess = false; // Explicitly revoke access
+        //         localStorage.setItem(accessKey, JSON.stringify(accessData));
+        //       } catch (e) {
+        //         console.error('Error updating access data:', e);
+        //       }
+        //     }
+            
+        //     // Don't call blockchain methods here, just update UI state
+        //     setHasAccess(false);
+            
+        //     // Dispatch UI update events without blockchain calls
+        //     window.dispatchEvent(new CustomEvent('accessStatusChanged', { 
+        //       detail: { 
+        //         characterId: selectedCharacter,
+        //         hasAccess: false 
+        //       } 
+        //     }));
+            
+        //     window.dispatchEvent(new CustomEvent('chatCompleted', {
+        //       detail: { characterId: selectedCharacter }
+        //     }));
+        //   } catch (completionError) {
+        //     console.error('Error marking chat as completed:', completionError);
+        //   }
+        // }
         
-        // Then show end popup
-        setShowEndPopup(true);
+        // Show completion popup instead of navigating
+        setShowCompletionPopup(true);
         
         // Clean up local storage
         localStorage.removeItem(`scene_${selectedCharacter}_${address.toLowerCase()}`);
@@ -341,14 +402,11 @@ export function ChatInterface() {
       localStorage.removeItem(accessKey);
       
       // 2. Set local state
-      setShowEndPopup(false);
-
       setHasAccess(false);
       
       // 3. Show completion popup
-      setShowEndPopup(true);
       setShowCompletionPopup(true);
-
+  
       // 4. Dispatch UI update events
       window.dispatchEvent(new CustomEvent('accessStatusChanged', { 
         detail: { 
@@ -356,15 +414,16 @@ export function ChatInterface() {
           hasAccess: false 
         } 
       }));
+      
+      window.dispatchEvent(new CustomEvent('chatCompleted', {
+        detail: { characterId: selectedCharacter }
+      }));
     }
     
     // Critical: Don't navigate away here - let the popup handle navigation
   };
-  
 
-  // 3. Modified access check UI - show purchase and return buttons
-  // Replace the isCheckingAccess section with:
-  if (!hasAccess && selectedCharacter) {
+if (!hasAccess && selectedCharacter && !isCompleted && !showCompletionPopup) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
@@ -483,33 +542,42 @@ export function ChatInterface() {
     );
   }
 
-  return (
-    <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
-      <ChatHeader
-        characterName={character?.name || ''}
-        happiness={happiness[selectedCharacter || ''] || 50}
-        characterId={selectedCharacter || ''}
-        onBack={handleBackClick} 
-      />
+  // Replace the entire return statement - no hooks inside the render method
 
-      {showError && error && (
-        <Alert variant="destructive" className="mx-4 mt-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+return (
+  <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
+    <ChatHeader
+      characterName={character?.name || ''}
+      happiness={happiness[selectedCharacter || ''] || 50}
+      characterId={selectedCharacter || ''}
+      onBack={handleBackClick} 
+    />
 
-      <div style={{ backgroundColor: '#101827' }} className="flex-1 flex flex-col items-center justify-center relative p-4 space-y-4">
-        {currentVideo && (
-          <div className="max-w-xs max-h-64 w-full aspect-video bg-black z-10">
+    {showError && error && (
+      <Alert variant="destructive" className="mx-4 mt-4">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )}
+
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Fixed video container */}
+      {currentVideo && (
+        <div className="sticky top-0 z-30 bg-gray-900/80 backdrop-blur-sm py-3 px-2 border-b border-gray-800 w-full">
+          <div className="max-w-xs mx-auto aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
             <VideoPlayer src={currentVideo} className="w-full h-full object-cover" />
           </div>
-        )}
-
-        <div style={{ backgroundColor: '#101827' }} className="flex-1 overflow-y-auto w-full mt-4 pb-8">
+        </div>
+      )}
+      
+      {/* Scrollable message container */}
+      <div 
+        className="flex-1 overflow-y-auto" 
+        style={{ backgroundColor: '#101827' }}
+      >
+        <div className="w-full px-4 pt-4 pb-8">
           {messages.map((message, i) => (
-            <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
               <ChatMessageComponent
-                key={i}
                 message={{
                   role: message.role as 'user' | 'assistant',
                   content: message.content,
@@ -523,94 +591,88 @@ export function ChatInterface() {
           ))}
         </div>
       </div>
+    </div>
 
-      <div style={{ backgroundColor: '#1f2937' }} className="p-4">
-        <div className="relative">
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={() => setShowOptions(!showOptions)}
-              className="bg-gray-700 hover:bg-gray-600 p-2 rounded"
-            >
-              Show Options
-            </Button>
+    <div style={{ backgroundColor: '#1f2937' }} className="p-4">
+      <div className="relative">
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => setShowOptions(!showOptions)}
+            className="bg-gray-700 hover:bg-gray-600 p-2 rounded"
+          >
+            Show Options
+          </Button>
 
-            <div className="flex-1">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type or select a message..."
-                className="w-full bg-gray-700 text-white"
-                readOnly
-              />
-            </div>
-
-            <Button
-              onClick={handleSend}
-              disabled={!input.trim() || isTransitioning}
-              className="bg-green-600 hover:bg-green-700 text-white px-6"
-            >
-              Send
-            </Button>
+          <div className="flex-1">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type or select a message..."
+              className="w-full bg-gray-700 text-white"
+              readOnly
+            />
           </div>
 
-          {showOptions && currentSceneOptions.length > 0 && (
-            <div className="absolute bottom-full left-0 w-full bg-gray-800 rounded-t-lg shadow-lg p-4">
-              <ChatOptions
-                options={currentSceneOptions}
-                onSelectOption={handleOptionSelect}
-                onPlayAudio={handlePlayAudio}
-                audioPlaying={audioPlaying}
-              />
-            </div>
-          )}
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim() || isTransitioning}
+            className="bg-green-600 hover:bg-green-700 text-white px-6"
+          >
+            Send
+          </Button>
         </div>
-      </div>
 
-      {/* End chat popup dialog */}
-      {showEndPopup && (
-  <ChatCompletionPopup 
-    language={character?.language}
-    onClose={() => {
-      setShowEndPopup(false);
-      router.push(`/chat/${character?.language}`);
-    }}
-  />
-)}
-
-{showCompletionPopup && (
-  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-    <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
-      <div className="w-20 h-20 bg-green-500 rounded-full mx-auto flex items-center justify-center mb-6">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-        </svg>
+        {showOptions && currentSceneOptions.length > 0 && (
+          <div className="absolute bottom-full left-0 w-full bg-gray-800 rounded-t-lg shadow-lg p-4">
+            <ChatOptions
+              options={currentSceneOptions}
+              onSelectOption={handleOptionSelect}
+              onPlayAudio={handlePlayAudio}
+              audioPlaying={audioPlaying}
+            />
+          </div>
+        )}
       </div>
-      
-      <h2 className="text-3xl font-bold text-white mb-4">Chat Completed!</h2>
-      <p className="text-gray-300 mb-8">
-        Thank you for participating in this conversation. We hope you enjoyed the experience!
-      </p>
-      
-      <Button
-        onClick={() => {
-          setShowCompletionPopup(false);
-          router.push(`/chat/${character?.language || 'chinese'}`);
-        }}
-        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-3 px-8 rounded-full text-lg shadow-lg"
-      >
-        Back to Tutors
-      </Button>
     </div>
-  </div>
-)}
 
-      {/* Exit confirmation dialog */}
-      <ConfirmExitDialog
+    {/* Exit confirmation dialog */}
+    <ConfirmExitDialog
       open={showExitConfirmation}
       onClose={() => setShowExitConfirmation(false)}
       onConfirmExit={handleConfirmExit}
       onStayInChat={handleStayInChat}
     />
-    </Card>
-  );
+
+    {/* Chat completion popup - only show one instance */}
+    {showCompletionPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+
+  <ChatCompletionPopup 
+    language={character?.language}
+    onClose={() => {
+      // Now revoke access and navigate away
+      if (selectedCharacter && address) {
+        const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+        localStorage.removeItem(accessKey);
+        
+        setHasAccess(false);
+        
+        window.dispatchEvent(new CustomEvent('accessStatusChanged', {
+          detail: { 
+            characterId: selectedCharacter,
+            hasAccess: false 
+          }
+        }));
+      }
+      
+      setShowCompletionPopup(false);
+      setIsCompleted(false); 
+      router.push(`/chat/${character?.language}`);
+    }}
+  />
+    </div>
+
+)}
+  </Card>
+);
 }

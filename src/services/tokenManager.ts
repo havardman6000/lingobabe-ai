@@ -485,7 +485,7 @@ async disconnect(): Promise<boolean> {
    * Mark a character chat as completed
    */
   // Update the markChatCompleted function in tokenManager.ts
-  markChatCompleted(characterId: string, skipBlockchainRevoke = false): void {
+  markChatCompleted(characterId: string): void {
     if (typeof window === 'undefined' || !characterId) return;
   
     try {
@@ -497,12 +497,13 @@ async disconnect(): Promise<boolean> {
           const address = accounts[0].toLowerCase();
           const accessKey = `${ACCESS_STORAGE_PREFIX}${address}_${characterId}`;
           
-          // First update local storage to mark as completed
+          // Only update local storage to mark as completed
           try {
             const storedData = localStorage.getItem(accessKey);
             if (storedData) {
               const accessData = JSON.parse(storedData) as AccessStatus;
               accessData.completed = true;
+              accessData.hasAccess = false;
               localStorage.setItem(accessKey, JSON.stringify(accessData));
             } else {
               // If no storage entry exists, create one marked as completed
@@ -518,46 +519,18 @@ async disconnect(): Promise<boolean> {
             console.error('Error updating local storage for completion:', storageError);
           }
           
-          // Only revoke on blockchain if not skipped
-          if (!skipBlockchainRevoke && this.contract) {
-            this.contract.methods.revokeCharacterAccess(accounts[0], characterId).send({
-              from: accounts[0]
-            }).then(() => {
-              console.log(`Access revoked for ${characterId}`);
-              
-              // Dispatch event for UI updates
-              window.dispatchEvent(new CustomEvent('chatCompleted', {
-                detail: { characterId }
-              }));
-              
-              // Also dispatch an access changed event
-              window.dispatchEvent(new CustomEvent('accessStatusChanged', {
-                detail: { 
-                  characterId,
-                  hasAccess: false,
-                  completed: true
-                }
-              }));
-            }).catch((error: any) => {
-              console.error('Failed to revoke access in contract:', error);
-              // Still dispatch event even if blockchain fails
-              window.dispatchEvent(new CustomEvent('chatCompleted', {
-                detail: { characterId }
-              }));
-            });
-          } else {
-            // Still dispatch events if skipping blockchain
-            window.dispatchEvent(new CustomEvent('chatCompleted', {
-              detail: { characterId }
-            }));
-            window.dispatchEvent(new CustomEvent('accessStatusChanged', {
-              detail: { 
-                characterId,
-                hasAccess: false,
-                completed: true
-              }
-            }));
-          }
+          // Dispatch events for UI updates - no blockchain calls
+          window.dispatchEvent(new CustomEvent('chatCompleted', {
+            detail: { characterId }
+          }));
+          
+          window.dispatchEvent(new CustomEvent('accessStatusChanged', {
+            detail: { 
+              characterId,
+              hasAccess: false,
+              completed: true
+            }
+          }));
         }).catch(error => {
           console.error('Failed to get accounts for chat completion:', error);
         });
@@ -566,6 +539,7 @@ async disconnect(): Promise<boolean> {
       console.error('Failed to mark chat as completed:', error);
     }
   }
+  
   
   /**
    * Get the access cost
