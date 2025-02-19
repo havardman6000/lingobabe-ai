@@ -562,12 +562,19 @@ return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Fixed video container */}
       {currentVideo && (
-        <div className="sticky top-0 z-30 bg-gray-900/80 backdrop-blur-sm py-3 px-2 border-b border-gray-800 w-full">
-          <div className="max-w-xs mx-auto aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
-            <VideoPlayer src={currentVideo} className="w-full h-full object-cover" />
-          </div>
-        </div>
-      )}
+  <div className="sticky top-0 z-30 w-full flex justify-center py-3" style={{ background: 'transparent' }}>
+    <div className="max-w-xs aspect-video bg-transparent">
+      {/* Video player with minimal container */}
+      <div className="overflow-hidden rounded-lg shadow-lg">
+        <VideoPlayer src={currentVideo} className="w-full h-full object-cover" />
+      </div>
+      
+      {/* Optional caption below video */}
+     
+    </div>
+  </div>
+)}
+
       
       {/* Scrollable message container */}
       <div 
