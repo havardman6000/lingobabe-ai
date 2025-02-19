@@ -1,5 +1,5 @@
 import { Characters, Character, CharacterId } from '@/types/chat';
-export const characters: Characters = {
+export const characters: Record<string, Character> = {
   mei: {  
     "id": "mei",
     "name": "Mei",
@@ -709,10 +709,10 @@ ji: {
   "scenes": {
     "1": {
       "initial": {
-        "korean": "안녕하세요! 오늘 수업 준비되셨나요?",
-        "romanized": "Annyeonghaseyo! Oneul sueop junbidoesyeonayo?",
-        "english": "Hello! Are you ready for today's lesson?",
-        "context": "Ji greets you in her executive office.",
+        "korean": "「딱 맞춰 왔네. 여기 분위기를 감상하고 있었는데—센스가 좋군요.",
+        "romanized": "Ttak matchwo watne. Yeogi bunwigireul gamsanghago isseonneunde—sense-ga jokunyo.",
+        "english": "Perfect timing. I was just admiring the ambiance—seems like you have good taste.",
+        "context": "Seated at a beautifully set table, she gracefully looks up as you arrive.",
         "video": "https://i.imgur.com/Jh7fLXI.mp4"
       },
       "options": [

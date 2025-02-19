@@ -53,8 +53,22 @@ export const useChatStore = create<ChatState>()(
               messages: [{
                 role: 'assistant',
                 content: {
+                  // Chinese fields
                   chinese: scene.initial.chinese,
                   pinyin: scene.initial.pinyin,
+                  
+                  // Japanese fields
+                  japanese: scene.initial.japanese,
+                  romaji: scene.initial.romaji,
+                  
+                  // Korean fields
+                  korean: scene.initial.korean,
+                  romanized: scene.initial.romanized,
+                  
+                  // Spanish field
+                  spanish: scene.initial.spanish,
+                  
+                  // Common fields
                   english: scene.initial.english,
                   context: scene.initial.context,
                   video: scene.initial.video

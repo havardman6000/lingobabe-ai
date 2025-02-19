@@ -11,18 +11,29 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
 }) => {
   const getMainText = () => {
     const content = message.content;
-    return content.chinese || content.japanese || content.korean || content.spanish || content.english;
+    // Check each language field and return the first non-empty one
+    return content.chinese || 
+           content.japanese || 
+           content.korean || 
+           content.spanish || 
+           content.english; // English as fallback
   };
 
   const getPronunciation = () => {
     const content = message.content;
-    return content.pinyin || content.romaji || content.romanized;
+    return content.pinyin || 
+           content.romaji || 
+           content.romanized || 
+           null;
   };
-
   const mainText = getMainText();
   const pronunciation = getPronunciation();
   const isUserMessage = message.role === 'user';
 
+  const getTextForAudio = () => {
+    // Prioritize target language for audio
+    return getMainText();
+  };
   return (
     <div 
       className={`flex items-start space-x-2 max-w-full sm:max-w-[80%] ${isUserMessage ? 'ml-auto' : ''}`}
@@ -43,24 +54,36 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
           <div className="flex items-start justify-between gap-2 flex-wrap sm:flex-nowrap">
             <div className="max-w-full overflow-hidden">
               <p className="text-base break-words">{mainText}</p>
+              
+              {/* Show pronunciation guide if available */}
               {pronunciation && (
-                <p className="text-sm opacity-90 mt-1" aria-label={`Pronunciation: ${pronunciation}`}>{pronunciation}</p>
+                <p className="text-sm opacity-90 mt-1" aria-label={`Pronunciation: ${pronunciation}`}>
+                  {pronunciation}
+                </p>
               )}
-              {message.content.english !== mainText && (
-                <p className="text-sm mt-1" aria-label={`Translation: ${message.content.english}`}>{message.content.english}</p>
+              
+              {/* Show English translation if main text is not English */}
+              {message.content.english && message.content.english !== mainText && (
+                <p className="text-sm mt-1" aria-label={`Translation: ${message.content.english}`}>
+                  {message.content.english}
+                </p>
               )}
+              
+              {/* Show context if available */}
               {message.content.context && (
-                <p className="text-sm italic mt-2 opacity-75" aria-label={`Context: ${message.content.context}`}>{message.content.context}</p>
+                <p className="text-sm italic mt-2 opacity-75" aria-label={`Context: ${message.content.context}`}>
+                  {message.content.context}
+                </p>
               )}
             </div>
             
-            {/* Audio button for all messages */}
+            {/* Audio button */}
             {mainText && (
               <Button
                 size="sm"
                 variant="secondary"
                 className="ml-2 p-1 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors flex-shrink-0 min-h-[36px] min-w-[36px]"
-                onClick={() => onPlayAudio(mainText)}
+                onClick={() => onPlayAudio(getTextForAudio())}
                 disabled={audioPlaying}
                 aria-label={`Play audio ${audioPlaying ? '(playing)' : ''}`}
               >
@@ -73,5 +96,6 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
     </div>
   );
 };
+
 
 export default ChatMessageComponent;

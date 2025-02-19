@@ -38,7 +38,7 @@ export function ChatOptions({
             }}
           >
             <div className="flex justify-between items-center">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm">{primaryText}</p>
                 {pronunciationText && (
                   <p className="text-xs text-gray-300">{pronunciationText}</p>
@@ -65,4 +65,3 @@ export function ChatOptions({
     </div>
   );
 }
-// src/components/ChatInterface/ChatOptions.tsx

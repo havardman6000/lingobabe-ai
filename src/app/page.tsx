@@ -2,6 +2,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { ResponsiveLandingVideo } from '@/components/ResponsiveLandingVideo';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -11,13 +12,21 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-300 to-green-300 flex flex-col items-center justify-center p-8 relative">
-      <video autoPlay loop muted className="absolute inset-0 w-full h-full object-cover">
-        <source src="/tutors/Lingobabe_landing.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden">
+      {/* Responsive video background */}
+      <ResponsiveLandingVideo 
+        desktopVideo="/tutors/Lingobabe_landing.mp4"
+        mobileVideo="/tutors/Lingobabe_landing_mobile.mp4"
+        fallbackImage="/tutors/landing_fallback.jpg"
+      />
       
-      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-center">
+      {/* Content overlay */}
+      <div className="relative z-10 text-center">
+        {/* Optional: Add your logo or heading here */}
+      </div>
+      
+      {/* Call to action button */}
+      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-center z-10">
         <button
           onClick={handleGetStarted}
           className="bg-green-500 text-white px-16 py-4 rounded-full text-xl font-semibold hover:bg-green-600 transition duration-300"

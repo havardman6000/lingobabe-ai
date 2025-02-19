@@ -496,6 +496,7 @@ if (!hasAccess && selectedCharacter && !isCompleted && !showCompletionPopup) {
   };
   
   
+  
   const handleStayInChat = () => {
     setShowExitConfirmation(false);
     setPendingNavigation(null);

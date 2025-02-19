@@ -26,19 +26,24 @@ export type CharacterId =
     video?: string;
   }
 
-  export type MessageContent = {
+  export interface MessageContent {
+    // Common fields
     english: string;
-    chinese?: string;
-    pinyin?: string;
-    japanese?: string;
-    romaji?: string;
-    korean?: string;
-    romanized?: string;
-    spanish?: string;
     context?: string;
     video?: string;
-  };
-  
+    
+    // Language-specific fields
+    chinese?: string;
+    pinyin?: string;
+    
+    japanese?: string;
+    romaji?: string;
+    
+    korean?: string;
+    romanized?: string;
+    
+    spanish?: string;
+  }
 export interface ChatMessage {
   role: ChatRole;
   content: MessageContent;
@@ -53,18 +58,25 @@ export interface Message {
 export type MessageInput = Omit<Message, 'timestamp'>;
 
 export interface ChatOption {
-  id?: string;
+  // Common fields
+  id?: string;     // Add this optional id field
   english: string;
+  video?: string;
+  points?: number;
+  
+  // Language-specific fields
   chinese?: string;
   pinyin?: string;
+  
   japanese?: string;
   romaji?: string;
+  
   korean?: string;
   romanized?: string;
+  
   spanish?: string;
-  points: number;
-  response: MessageContent;
-  video?: string;
+  
+  response?: MessageContent;
 }
 
 export interface Scene {
@@ -136,11 +148,21 @@ export interface SpanishCharacter extends BaseCharacter {
   spanishName: string;
 }
 
-export type Character = 
-| ChineseCharacter 
-| JapaneseCharacter 
-| KoreanCharacter 
-| SpanishCharacter;
+export interface Character {
+  id: string;
+  name: string;
+  description: string;
+  language: SupportedLanguage;
+  image: string;
+  scenes: Record<number, Scene>;
+  
+  // Native language names
+  chineseName?: string;
+  japaneseName?: string;
+  koreanName?: string;
+  spanishName?: string;
+}
+
 
 
 export interface Scene {
