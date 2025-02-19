@@ -18,11 +18,11 @@ export function ConfirmExitDialog({
 }: ConfirmExitDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-labelledby="dialog-title" aria-describedby="dialog-description">
         <DialogHeader>
-          <DialogTitle>Leave Chat?</DialogTitle>
+          <DialogTitle id="dialog-title">Leave Chat?</DialogTitle>
         </DialogHeader>
-        <div className="text-gray-300 my-4">
+        <div className="text-gray-300 my-4" id="dialog-description">
           <p>If you leave now, your progress will be lost and you'll lose access to this chat.</p>
           <p className="mt-2">You'll need to pay 10 LBAI tokens again to restart this conversation.</p>
         </div>
@@ -30,7 +30,7 @@ export function ConfirmExitDialog({
           <Button
             variant="outline"
             onClick={onStayInChat}
-            className="sm:w-auto w-full"
+            className="sm:w-auto w-full min-h-[44px]"
           >
             Back to Chat
           </Button>
@@ -38,7 +38,7 @@ export function ConfirmExitDialog({
           <Button
             onClick={onConfirmExit}
             variant="destructive"
-            className="sm:w-auto w-full"
+            className="sm:w-auto w-full min-h-[44px]"
           >
             Leave Chat
           </Button>

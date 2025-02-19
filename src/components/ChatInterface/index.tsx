@@ -30,6 +30,8 @@ export function ChatInterface() {
 
   // Local UI state
   const [input, setInput] = useState('');
+  const [isCustomInput, setIsCustomInput] = useState(false);
+  const [showUnsupportedMessage, setShowUnsupportedMessage] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +50,18 @@ export function ChatInterface() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [showCompletionPopup, setShowCompletionPopup] = useState(false);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    
+    // Check if input matches any option
+    const matchesOption = currentSceneOptions.some(opt => {
+      const primaryText = opt.chinese || opt.japanese || opt.korean || opt.spanish;
+      return primaryText === e.target.value.trim();
+    });
+    
+    setIsCustomInput(!matchesOption && e.target.value.trim() !== '');
+  };
+  
   // Message tracking state
   const [messageStats, setMessageStats] = useState<MessageStats>({
     messagesUsed: 0,
@@ -239,7 +253,13 @@ useEffect(() => {
     if (!input.trim() || !selectedCharacter || !character || isTransitioning || !address) {
       showErrorMessage('Invalid input or connection state');
       return;
+
     }
+    if (isCustomInput) {
+      setShowUnsupportedMessage(true);
+      setTimeout(() => setShowUnsupportedMessage(false), 4000);
+      return;
+    }    
   
     try {
       const selectedOption = currentSceneOptions.find(opt => {
@@ -544,142 +564,277 @@ if (!hasAccess && selectedCharacter && !isCompleted && !showCompletionPopup) {
 
   // Replace the entire return statement - no hooks inside the render method
 
-return (
-  <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
-    <ChatHeader
-      characterName={character?.name || ''}
-      happiness={happiness[selectedCharacter || ''] || 50}
-      characterId={selectedCharacter || ''}
-      onBack={handleBackClick} 
-    />
-
-    {showError && error && (
-      <Alert variant="destructive" className="mx-4 mt-4">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )}
-
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Fixed video container */}
-      {currentVideo && (
-  <div className="sticky top-0 z-30 w-full flex justify-center py-3" style={{ background: 'transparent' }}>
-    <div className="max-w-xs aspect-video bg-transparent">
-      {/* Video player with minimal container */}
-      <div className="overflow-hidden rounded-lg shadow-lg">
-        <VideoPlayer src={currentVideo} className="w-full h-full object-cover" />
+  return (
+    <Card style={{ backgroundColor: '#101827', color: 'white' }} className="flex flex-col h-screen">
+      <ChatHeader
+        characterName={character?.name || ''}
+        happiness={happiness[selectedCharacter || ''] || 50}
+        characterId={selectedCharacter || ''}
+        onBack={handleBackClick} 
+      />
+  
+      {showError && error && (
+        <Alert variant="destructive" className="mx-4 mt-4" role="alert">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+  
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Video player with accessibility improvements */}
+        {currentVideo && (
+          <div className="sticky top-0 z-30 w-full flex justify-center py-3" style={{ background: 'transparent' }}>
+            <div className="max-w-xs aspect-video bg-transparent">
+              <div className="overflow-hidden rounded-lg shadow-lg">
+                <VideoPlayer 
+                  src={currentVideo} 
+                  className="w-full h-full object-cover" 
+                  aria-Label={`Video from ${character?.name || 'tutor'}`}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      
+        {/* Chat messages with improved scroll accessibility */}
+        <div 
+          className="flex-1 overflow-y-auto px-2 sm:px-4" 
+          style={{ backgroundColor: '#101827' }}
+          tabIndex={0}
+          role="log"
+          aria-label="Chat history"
+          aria-live="polite"
+        >
+          <div className="w-full pt-4 pb-8">
+            {messages.map((message, i) => (
+              <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+                <ChatMessageComponent
+                  message={{
+                    role: message.role as 'user' | 'assistant',
+                    content: message.content,
+                    timestamp: message.timestamp
+                  }}
+                  avatarSrc={character?.image}
+                  onPlayAudio={handlePlayAudio}
+                  audioPlaying={audioPlaying}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      
-      {/* Optional caption below video */}
-     
-    </div>
-  </div>
-)}
-
-      
-      {/* Scrollable message container */}
-      <div 
-        className="flex-1 overflow-y-auto" 
-        style={{ backgroundColor: '#101827' }}
-      >
-        <div className="w-full px-4 pt-4 pb-8">
-          {messages.map((message, i) => (
-            <div key={i} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-              <ChatMessageComponent
-                message={{
-                  role: message.role as 'user' | 'assistant',
-                  content: message.content,
-                  timestamp: message.timestamp
-                }}
-                avatarSrc={character?.image}
+  
+      {/* Input area with accessibility improvements */}
+      <div style={{ backgroundColor: '#1f2937' }} className="p-2 sm:p-3">
+        <div className="relative">
+          {showUnsupportedMessage && (
+            <div className="absolute bottom-full left-0 w-full bg-gray-800 rounded-t-lg shadow-lg p-3 mb-2 text-white text-sm">
+              Free chat is still under development. Please select from the available options.
+              <button 
+                className="absolute top-1 right-1 text-gray-400 hover:text-white"
+                onClick={() => setShowUnsupportedMessage(false)}
+                aria-label="Close message"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowOptions(!showOptions)}
+              className="options-button"
+              aria-label="Show response options"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                className="h-5 w-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
+            </button>
+  
+            <div className="flex-1">
+              <input
+                value={input}
+                onChange={handleInputChange}
+                placeholder="Type or select a message..."
+                className="w-full bg-gray-700 text-white rounded-md px-3 py-2 min-h-[44px]"
+                aria-label="Message input"
+              />
+            </div>
+  
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isTransitioning}
+              className="send-button"
+              aria-label="Send message"
+            >
+              <span className="hidden sm:inline">Send</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                className="h-5 w-5 sm:hidden" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+  
+          {/* Options dropdown */}
+          {showOptions && currentSceneOptions.length > 0 && (
+            <div className="options-dropdown absolute bottom-full left-0 w-full bg-gray-800 rounded-t-lg shadow-lg p-3 z-20 max-h-60vh overflow-y-auto">
+              <ChatOptions
+                options={currentSceneOptions}
+                onSelectOption={handleOptionSelect}
                 onPlayAudio={handlePlayAudio}
                 audioPlaying={audioPlaying}
               />
             </div>
-          ))}
+          )}
         </div>
       </div>
-    </div>
-
-    <div style={{ backgroundColor: '#1f2937' }} className="p-4">
-      <div className="relative">
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={() => setShowOptions(!showOptions)}
-            className="bg-gray-700 hover:bg-gray-600 p-2 rounded"
-          >
-            Show Options
-          </Button>
-
-          <div className="flex-1">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type or select a message..."
-              className="w-full bg-gray-700 text-white"
-              readOnly
-            />
-          </div>
-
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isTransitioning}
-            className="bg-green-600 hover:bg-green-700 text-white px-6"
-          >
-            Send
-          </Button>
+  
+      {/* Accessibility improvements for dialogs */}
+      <ConfirmExitDialog
+        open={showExitConfirmation}
+        onClose={() => setShowExitConfirmation(false)}
+        onConfirmExit={handleConfirmExit}
+        onStayInChat={handleStayInChat}
+      />
+  
+      {showCompletionPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="completion-title">
+          <ChatCompletionPopup 
+            language={character?.language}
+            onClose={() => {
+              // Now revoke access and navigate away
+              if (selectedCharacter && address) {
+                const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
+                localStorage.removeItem(accessKey);
+                
+                setHasAccess(false);
+                
+                window.dispatchEvent(new CustomEvent('accessStatusChanged', {
+                  detail: { 
+                    characterId: selectedCharacter,
+                    hasAccess: false 
+                  }
+                }));
+              }
+              
+              setShowCompletionPopup(false);
+              setIsCompleted(false); 
+              router.push(`/chat/${character?.language}`);
+            }}    
+          />
         </div>
-
-        {showOptions && currentSceneOptions.length > 0 && (
-          <div className="absolute bottom-full left-0 w-full bg-gray-800 rounded-t-lg shadow-lg p-4">
-            <ChatOptions
-              options={currentSceneOptions}
-              onSelectOption={handleOptionSelect}
-              onPlayAudio={handlePlayAudio}
-              audioPlaying={audioPlaying}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-
-    {/* Exit confirmation dialog */}
-    <ConfirmExitDialog
-      open={showExitConfirmation}
-      onClose={() => setShowExitConfirmation(false)}
-      onConfirmExit={handleConfirmExit}
-      onStayInChat={handleStayInChat}
-    />
-
-    {/* Chat completion popup - only show one instance */}
-    {showCompletionPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-
-  <ChatCompletionPopup 
-    language={character?.language}
-    onClose={() => {
-      // Now revoke access and navigate away
-      if (selectedCharacter && address) {
-        const accessKey = `character_access_${address.toLowerCase()}_${selectedCharacter}`;
-        localStorage.removeItem(accessKey);
-        
-        setHasAccess(false);
-        
-        window.dispatchEvent(new CustomEvent('accessStatusChanged', {
-          detail: { 
-            characterId: selectedCharacter,
-            hasAccess: false 
-          }
-        }));
+      )}
+      <style jsx>{`
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        max-height: 100vh;
+        overflow: hidden;
       }
-      
-      setShowCompletionPopup(false);
-      setIsCompleted(false); 
-      router.push(`/chat/${character?.language}`);
-    }}
-  />
-    </div>
 
-)}
+      .chat-header {
+        flex-shrink: 0;
+        padding: 8px;
+        background-color: #1f2937;
+      }
+
+      .chat-body {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chat-video-container {
+       width: 100%;
+    max-height: 25vh; /* Reduced for mobile */
+    margin: 0 auto 8px;
+      }
+
+      .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        width: 100%;
+      }
+
+      .chat-input {
+        flex-shrink: 0;
+        padding: 8px;
+        background-color: #1f2937;
+      }
+
+      .options-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px;
+        background-color: #374151;
+        color: white;
+        border-radius: 6px;
+      }
+
+      .send-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        min-height: 36px;
+        padding: 6px 12px;
+        background-color: #10b981;
+        color: white;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .options-dropdown {
+         position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    max-height: 50vh; /* Limit height on mobile */
+    overflow-y: auto;
+    z-index: 30;
+      }
+
+      @media (min-width: 640px) {
+        .chat-header {
+          padding: 12px 16px;
+        }
+        
+        .chat-body {
+          padding: 16px;
+        }
+        
+        .chat-video-container {
+    max-height: 40vh;
+      max-width: 560px;      }
+
+        .chat-input {
+          padding: 12px 16px;
+        }
+        
+        .options-button,
+        .send-button {
+          min-width: 44px;
+          min-height: 44px;
+        }
+           .options-dropdown {
+      max-height: 60vh;
+    }
+      }
+    `}</style>
   </Card>
 );
 }

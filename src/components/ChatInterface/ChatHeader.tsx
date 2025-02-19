@@ -1,16 +1,15 @@
-// src/components/ChatInterface/ChatHeader.tsx
 import { useWeb3 } from '@/components/providers/web3-provider';
 
-export function ChatHeader({ 
-  characterName, 
-  happiness, 
-  characterId, 
-  onBack 
-}: { 
-  characterName: string, 
-  happiness: number, 
-  characterId: string, 
-  onBack: () => void 
+export function ChatHeader({
+  characterName,
+  happiness,
+  characterId,
+  onBack
+}: {
+  characterName: string,
+  happiness: number,
+  characterId: string,
+  onBack: () => void
 }) {
   const { address } = useWeb3();
 
@@ -19,39 +18,115 @@ export function ChatHeader({
     if (characterId && address) {
       const accessKey = `character_access_${address.toLowerCase()}_${characterId}`;
       localStorage.removeItem(accessKey);
-      
+
       // Manually dispatch events to update UI without calling blockchain
       window.dispatchEvent(new CustomEvent('chatCancelled', {
         detail: { characterId }
       }));
     }
-    
+
     // Just navigate back
     onBack();
   };
 
   return (
-    <div className="flex justify-between items-center p-4 bg-gray-800">
-      <button 
-        onClick={handleSafeBack} 
-        className="flex items-center gap-2 bg-gradient-to-r from-blue-500/90 to-indigo-600/90 hover:from-blue-600/90 hover:to-indigo-700/90 text-white rounded-full pl-3 pr-5 py-2 shadow-lg transition-all duration-300 backdrop-blur-sm"
-      >
-        <div className="rounded-full bg-white/20 p-1">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <div className="chat-header-container">
+      <div className="header-main">
+        <button
+          onClick={handleSafeBack}
+          className="back-button"
+          aria-label="Go back"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="back-icon" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
           </svg>
-        </div>
-        <span className="font-medium">Back</span>
-      </button>
-      <h1 className="text-lg text-white font-semibold">
-        {characterName}
-      </h1>
-      <div className="flex gap-4">
-        <div className="bg-gray-700 px-3 py-1 rounded-full flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500"></span>
-          <span className="text-sm text-white">Happiness: {happiness}</span>
+        </button>
+
+        <div className="character-info">
+          <h1 className="character-name">
+            {characterName}
+          </h1>
+          <div className="happiness-meter">
+            <span className="status-indicator"></span>
+            <span className="happiness-text">
+              Happiness: {happiness}
+            </span>
+          </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .chat-header-container {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          background-color: #1f2937;
+        }
+
+        .header-main {
+          display: flex;
+          align-items: center;
+          padding: 8px 12px;
+          position: relative;
+        }
+
+        .back-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          background: rgba(59, 130, 246, 0.8);
+          border-radius: 50%;
+          color: white;
+          flex-shrink: 0;
+        }
+
+        .back-icon {
+          width: 20px;
+          height: 20px;
+        }
+
+        .character-info {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-grow: 1;
+          text-align: center;
+        }
+
+        .character-name {
+          font-size: 18px;
+          font-weight: 600;
+          color: white;
+          margin: 0;
+        }
+
+        .happiness-meter {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background-color: rgba(55, 65, 81, 0.8);
+          padding: 4px 12px;
+          border-radius: 9999px;
+          color: white;
+          font-size: 13px;
+          margin-top: 4px;
+        }
+
+        .status-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: ${happiness > 70 ? '#10b981' :
+                              happiness > 40 ? '#f59e0b' :
+                              '#ef4444'};
+        }
+
+        .happiness-text {
+          white-space: nowrap;
+        }
+      `}</style>
     </div>
   );
 }
