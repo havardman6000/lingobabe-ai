@@ -1,3 +1,4 @@
+// src/components/pages/DailyGoalPage.tsx
 "use client";
 
 import React, { useState } from 'react';
@@ -13,6 +14,7 @@ const DailyGoalPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
 
   const timeOptions = [
     '5 MIN/DAY',
@@ -28,78 +30,67 @@ const DailyGoalPage = () => {
     setErrorMessage(null);
   };
 
-  const handleContinue = async () => {
-    if (!surveyData.dailyGoal || isSubmitting) return;
+  // src/components/pages/DailyGoalPage.tsx - handleContinue function update
+// src/components/pages/DailyGoalPage.tsx - handleContinue function update
+const handleContinue = async () => {
+  if (!surveyData.dailyGoal || isSubmitting) return;
+  
+  setIsSubmitting(true);
+  setSubmitStatus('loading');
+  setShowLoadingScreen(true); // Show loading immediately
+  
+  // Always save to localStorage as backup
+  try {
+    localStorage.setItem('lingobabe_survey_data', JSON.stringify(surveyData));
+    console.log('Survey data saved to localStorage:', surveyData);
+  } catch (e) {
+    console.warn('Could not save to localStorage:', e);
+  }
+  
+  try {
+    // Attempt to submit to the API
+    const response = await fetch('/api/submit-survey', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(surveyData),
+      cache: 'no-store',
+    });
+
+    const result = await response.json();
+    console.log('Response from API:', result);
+
+    // Mark survey as completed regardless of Google Form submission result
+    localStorage.setItem('lingobabe_survey_completed', 'true');
     
-    setIsSubmitting(true);
-    setSubmitStatus('loading');
+    // Navigate to success page
+    router.push('/welcome-survey/success');
+  } catch (err) {
+    console.error('Submission error:', err);
     
-    // Always save to localStorage as backup
-    try {
-      localStorage.setItem('lingobabe_survey_data', JSON.stringify(surveyData));
-      console.log('Survey data saved to localStorage:', surveyData);
-    } catch (e) {
-      console.warn('Could not save to localStorage:', e);
-    }
-    
-    try {
-      // Attempt to submit to the API
-      const response = await fetch('/api/submit-survey', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(surveyData),
-        cache: 'no-store',
-      });
+    // Even on error, mark as completed and continue
+    localStorage.setItem('lingobabe_survey_completed', 'true');
+    router.push('/welcome-survey/success');
+  }
+};
 
-      const result = await response.json();
-      console.log('Response from API:', result);
-
-      // Check the Google response for detailed errors
-      if (result.googleResponse) {
-        try {
-          const googleData = typeof result.googleResponse === 'string' 
-            ? JSON.parse(result.googleResponse) 
-            : result.googleResponse;
-            
-          console.log('Google response details:', googleData);
-          
-          // If Google reports an error but our API returned 200, handle it
-          if (googleData.status === 'error' && response.ok) {
-            setErrorMessage(`Google Form error: ${googleData.message || 'Unknown error'}`);
-            setSubmitStatus('error');
-            setIsSubmitting(false);
-            return;
-          }
-        } catch (e) {
-          console.warn('Could not parse Google response', e);
-        }
-      }
-
-      if (response.ok) {
-        // Success case
-        setSubmitStatus('success');
-        // Navigate with a small delay for better UX
-        setTimeout(() => router.push('/welcome-survey/success'), 800);
-      } else {
-        // Error from our API
-        setSubmitStatus('error');
-        setErrorMessage(result.message || 'Failed to submit your response');
-        setIsSubmitting(false);
-      }
-    } catch (err) {
-      console.error('Submission error:', err);
-      
-      // Fallback to success path with localStorage saved data
-      setSubmitStatus('success');
-      setErrorMessage(null);
-      // Still navigate to success but with a message in console
-      console.warn('Continuing to success page with locally saved data only');
-      setTimeout(() => router.push('/success'), 800);
-    }
-  };
-
+  // Show loading screen if needed
+  if (showLoadingScreen) {
+    return (
+      <div className="min-h-screen bg-[#F5FBFF] flex flex-col items-center justify-center">
+        <div className="z-20 text-center">
+          <div className="w-16 h-16 border-4 border-[#00C853] border-t-transparent rounded-full animate-spin mb-6 mx-auto"></div>
+          <h1 className="text-4xl font-semibold text-[#00C853] mb-4">
+            Preparing your<br />personalized experience...
+          </h1>
+          <p className="text-xl text-gray-600">
+            Setting up your language learning journey
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <SurveyLayout showBackButton showProgressBar currentStep={5}>
       <div className="flex-1 flex flex-col md:flex-row items-center md:items-start w-full px-4 min-h-0 md:px-20 md:pt-4 h-full">
@@ -153,6 +144,7 @@ const DailyGoalPage = () => {
           onClick={handleContinue} 
           disabled={!surveyData.dailyGoal || isSubmitting}
           isLoading={isSubmitting}
+          nextPage='/welcome-survey/success'
         />
       </div>
     </SurveyLayout>

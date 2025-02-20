@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: true,
+  swcMinify: true,
+  images: {
+    unoptimized: true,
+  },
+  // Help with Netlify compatibility
+  experimental: {
+    serverComponentsExternalPackages: [],
+  }
 };
 
 export default nextConfig;

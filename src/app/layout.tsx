@@ -1,4 +1,4 @@
-// src/app/layout.tsx (modified)
+// src/app/layout.tsx
 import { Web3Provider } from '@/components/providers/web3-provider';
 import { TokenManagerProvider } from '@/components/providers/TokenManagerContext';
 import { SurveyProvider } from '@/context/SurveyContext';

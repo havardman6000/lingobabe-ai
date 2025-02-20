@@ -1,4 +1,4 @@
-// src/components/ResponsiveLandingVideo.tsx
+// src/components/ResponsiveLandingVideo.tsx - Update to handle missing files
 import React, { useEffect, useState, useRef } from 'react';
 import { useMediaQuery } from '@/components/a11y/useMediaQuery';
 import { usePreloadVideos } from '@/hooks/usePreloadVideos';
@@ -17,6 +17,7 @@ export const ResponsiveLandingVideo: React.FC<ResponsiveLandingVideoProps> = ({
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [currentSource, setCurrentSource] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoError, setVideoError] = useState(false);
   
   // Preload both videos immediately
   const { status: preloadStatus } = usePreloadVideos([desktopVideo, mobileVideo]);
@@ -24,10 +25,10 @@ export const ResponsiveLandingVideo: React.FC<ResponsiveLandingVideoProps> = ({
   // Set the appropriate video source based on screen size
   useEffect(() => {
     const newSource = isMobile ? mobileVideo : desktopVideo;
-    setCurrentSource(newSource);
+    setCurrentSource(videoError ? '' : newSource);
     
     // If the video element exists, force a reload when source changes
-    if (videoRef.current) {
+    if (videoRef.current && !videoError) {
       videoRef.current.load();
       
       // Try to play (browser might block autoplay)
@@ -35,13 +36,20 @@ export const ResponsiveLandingVideo: React.FC<ResponsiveLandingVideoProps> = ({
         console.warn('Autoplay may be prevented by browser settings:', e);
       });
     }
-  }, [isMobile, mobileVideo, desktopVideo]);
+  }, [isMobile, mobileVideo, desktopVideo, videoError]);
 
-  const isVideoLoaded = preloadStatus[currentSource] === 'loaded';
-  const hasError = preloadStatus[currentSource] === 'error';
+  const isVideoLoaded = !videoError && preloadStatus[currentSource] === 'loaded';
+  const hasError = videoError || preloadStatus[currentSource] === 'error';
+
+  const handleVideoError = () => {
+    setVideoError(true);
+  };
 
   return (
     <div className="video-wrapper" aria-hidden="true">
+      {/* Solid color background as ultimate fallback */}
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-400 to-green-300"></div>
+      
       {/* Fallback image shown until video is loaded */}
       {(!isVideoLoaded || hasError) && fallbackImage && (
         <div className="fallback-container">
@@ -49,22 +57,26 @@ export const ResponsiveLandingVideo: React.FC<ResponsiveLandingVideoProps> = ({
             src={fallbackImage} 
             alt="Background" 
             className="fallback-image"
+            onError={() => console.warn("Fallback image failed to load")}
           />
         </div>
       )}
       
       {/* Main video element */}
-      <video 
-        ref={videoRef}
-        className={`background-video ${isVideoLoaded ? 'visible' : 'hidden'}`}
-        autoPlay 
-        loop 
-        muted 
-        playsInline
-      >
-        <source src={currentSource} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+      {!videoError && (
+        <video 
+          ref={videoRef}
+          className={`background-video ${isVideoLoaded ? 'visible' : 'hidden'}`}
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          onError={handleVideoError}
+        >
+          {currentSource && <source src={currentSource} type="video/mp4" />}
+          {/* No source tag if currentSource is empty */}
+        </video>
+      )}
 
       <style jsx>{`
         .video-wrapper {

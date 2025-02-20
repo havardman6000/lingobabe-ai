@@ -1,4 +1,5 @@
-import React from 'react';
+// src/components/pages/BenefitsPage.tsx
+import React, { useState } from 'react';
 import Image from 'next/image';
 import ContinueButton from '../ContinueButton';
 import SurveyLayout from '../SurveyLayout';
@@ -6,29 +7,42 @@ import { useRouter } from 'next/navigation';
 
 const BenefitsPage = () => {
   const router = useRouter();
-  const benefits = [
-    {
-      icon: '⭐',
-      title: 'CONVERSE WITH CONFIDENCE',
-      description: 'Hold smooth, engaging conversations and effortlessly spark attraction. No more awkward silences—just natural, confident flow.'
-    },
-    {
-      icon: '🗣️',
-      title: 'SPEAK LIKE A LOCAL',
-      description: 'Go beyond vocabulary—master phrases, slang, and expressions that make you sound authentic, not like a textbook.'
-    },
-    {
-      icon: '🔥',
-      title: 'MASTER THE ART OF CHARM',
-      description: 'Learn to flirt, tease, and banter effortlessly. Impress women with your wit, humor, and charismatic presence.'
-    }
-  ];
-const handleContinue = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleContinue = () => {
     // Mark survey as completed
     localStorage.setItem('lingobabe_survey_completed', 'true');
-    // Navigate to language selector
-    router.push('/language-selector');
+    
+    // Show loading screen
+    setIsLoading(true);
+    
+    // Simulate loading and check if language selector is ready
+    const checkLanguageSelectorReady = () => {
+      // For demo, simply wait for 2 seconds to simulate loading
+      setTimeout(() => {
+        router.push('/language-selector');
+      }, 2000);
+    };
+    
+    checkLanguageSelectorReady();
   };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F5FBFF] flex flex-col items-center justify-center">
+        <div className="z-20 text-center">
+          <div className="w-16 h-16 border-4 border-[#00C853] border-t-transparent rounded-full animate-spin mb-6 mx-auto"></div>
+          <h1 className="text-5xl font-semibold text-[#00C853] mb-4">
+            Preparing your<br />personalized experience...
+          </h1>
+          <p className="text-2xl text-gray-600">
+            Setting up your language learning journey
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <SurveyLayout>
       <div className="flex-1 flex flex-col items-center w-full px-4 md:px-20 pt-2 md:pt-4 min-h-0">
@@ -71,10 +85,10 @@ const handleContinue = () => {
 
       {/* Continue Button Container */}
       <div className="w-full px-4 md:px-[40px] mt-3 md:mt-8 mb-4 md:mb-10">
-        <ContinueButton onClick={() => {}} nextPage='/language-selector'/>
+        <ContinueButton onClick={handleContinue} />
       </div>
     </SurveyLayout>
   );
 };
 
-export default BenefitsPage; 
+export default BenefitsPage;

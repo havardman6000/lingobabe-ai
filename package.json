@@ -38,6 +38,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@metamask/providers": "^20.0.0",
+    "@netlify/plugin-nextjs": "^5.9.4",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/node": "^20.17.19",
     "@types/react": "^19",

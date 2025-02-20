@@ -1,3 +1,4 @@
+// src/components/pages/SuccessPage.tsx
 import React from 'react';
 import Image from 'next/image';
 import ContinueButton from '../ContinueButton';
@@ -22,10 +23,10 @@ const SuccessPage = () => {
 
       {/* Continue Button Container */}
       <div className="w-full px-4 md:px-[40px] mt-3 md:mt-6 mb-4 md:mb-10">
-        <ContinueButton onClick={() => {}}nextPage='/welcome-survey/benefits' />
+        <ContinueButton onClick={() => {}} nextPage='/welcome-survey/benefits' />
       </div>
     </SurveyLayout>
   );
 };
 
-export default SuccessPage; 
+export default SuccessPage;
