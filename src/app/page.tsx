@@ -10,14 +10,20 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Always mark the survey as completed for now
-    localStorage.setItem('lingobabe_survey_completed', 'true');
+    // Check if user has completed the survey
+    const hasDoneSurvey = localStorage.getItem('lingobabe_survey_completed');
     setIsLoading(false);
   }, []);
 
   const handleGetStarted = () => {
-    // Skip the survey check and always go to language selector
-    router.push('/language-selector');
+    // Check if user has completed the survey
+    const hasDoneSurvey = localStorage.getItem('lingobabe_survey_completed');
+    
+    if (hasDoneSurvey === 'true') {
+      router.push('/language-selector');
+    } else {
+      router.push('/welcome-survey');
+    }
   };
 
   return (

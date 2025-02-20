@@ -11,25 +11,25 @@ const languages = [
     id: 'chinese',
     name: 'Chinese',
     description: '中文',
-    imageUrl: '/tutors/chinese.png'
+    imageUrl: '/tutors/chinese.jpg'
   },
   {
     id: 'japanese',
     name: 'Japanese',
     description: '日本語',
-    imageUrl: '/tutors/japanese.png'
+    imageUrl: '/tutors/japanese.jpg'
   },
   {
     id: 'korean',
     name: 'Korean',
     description: '한국어',
-    imageUrl: '/tutors/korean.png'
+    imageUrl: '/tutors/korean.jpg'
   },
   {
     id: 'spanish',
     name: 'Spanish',
     description: 'Español',
-    imageUrl: '/tutors/spanish.png'
+    imageUrl: '/tutors/spanish.jpg'
   }
 ];
 
