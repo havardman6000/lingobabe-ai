@@ -25,11 +25,12 @@ export default function LandingPage() {
       {/* Use a gradient background as the ultimate fallback */}
       <div className="absolute inset-0 bg-gradient-to-r from-green-300 to-blue-300 z-0"></div>
       
-      <ResponsiveLandingVideo 
-        desktopVideo="/tutors/Lingobabe_landing.mp4"
-        mobileVideo="/tutors/Lingobabe_landing_mobile.mp4"
-        fallbackImage="/assets/image/landing_background.jpg"
-      />
+      <ResponsiveLandingVideo
+  desktopVideo="/tutors/Lingobabe_landing.mp4"
+  mobileVideo="/tutors/Lingobabe_landing_mobile.mp4"
+  desktopFallback="/tutors/image/Lingobabe_landing_fallback.jpg"
+  mobileFallback="/tutors/image/Lingobabe_landing_mobile_fallback.jpg"
+/>
       
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-center z-10">
         <button
