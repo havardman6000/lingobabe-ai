@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --focus-ring: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --focus-ring: #60a5fa;
+  }
+}
+
+/* Improved focus styling for accessibility */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Base text sizing improvements */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+}
+
+/* Improve touch targets for mobile */
+button, 
+a, 
+input,
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Ensure adequate spacing in forms */
+input, 
+textarea, 
+select {
+  margin-bottom: 0.5rem;
+}
+
+/* Better text contrast */
+.text-gray-400 {
+  color: #9ca3af; /* Ensuring this has adequate contrast with dark backgrounds */
+}
+
+/* Improved link styling */
+a:focus {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.75rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Skip to content link for keyboard users */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #3b82f6;
+  color: white;
+  padding: 8px 16px;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+/* Base mobile-first styles (default) */
+:root {
+  --font-size-base: 16px;
+  --font-size-h1: 28px;
+  --font-size-h2: 24px;
+  --font-size-h3: 20px;
+  --spacing-unit: 16px;
+  --container-padding: 16px;
+  --button-height: 44px;
+  --input-height: 44px;
+  --touch-target-size: 44px;
+}
+
+html {
+  font-size: var(--font-size-base);
+}
+
+/* Enhanced touch target for mobile */
+button, 
+a, 
+input,
+select,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="option"] {
+  min-height: var(--touch-target-size);
+  min-width: var(--touch-target-size);
+}
+
+/* Container padding for smaller screens */
+.container, 
+.chat-container,
+.language-selector {
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+/* Small tablets and larger phones (landscape) */
+@media (min-width: 480px) {
+  :root {
+    --font-size-h1: 32px;
+    --font-size-h2: 26px;
+    --font-size-h3: 22px;
+    --spacing-unit: 20px;
+  }
+  
+  .chat-options {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+}
+
+/* Tablets and smaller laptops */
+@media (min-width: 768px) {
+  :root {
+    --font-size-h1: 36px;
+    --font-size-h2: 30px;
+    --font-size-h3: 24px;
+    --spacing-unit: 24px;
+    --container-padding: 32px;
+  }
+  
+  /* Improved layout for larger screens */
+  .tutor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-unit);
+  }
+  
+  .chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  :root {
+    --font-size-h1: 42px;
+    --font-size-h2: 32px;
+    --font-size-h3: 26px;
+    --spacing-unit: 32px;
+  }
+  
+  /* Enhanced desktop experience */
+  .language-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-unit);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #121212;
+    --text-color: #f5f5f5;
+    --border-color: #444;
+    --focus-ring-color: #3b82f6;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode */
+@media (forced-colors: active) {
+  button, 
+  .card,
+  .dialog,
+  .alert {
+    border: 2px solid currentColor;
+  }
+  
+  a:focus,
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus,
+  [role="button"]:focus {
+    outline: 3px solid Highlight;
+  }
+}
+main#main-content {
+  padding-bottom: 80px; /* Adjust based on the actual height of your navigation bar */
+}
+
+@media (max-width: 480px) {
+  main#main-content {
+    padding-bottom: 70px; /* Smaller padding for mobile */
+  }
+}

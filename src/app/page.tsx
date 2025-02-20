@@ -1,31 +1,39 @@
-// src/app/page.tsx
+// src/app/page.tsx (modified)
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { ResponsiveLandingVideo } from '@/components/ResponsiveLandingVideo';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user has completed the survey
+    const hasDoneSurvey = localStorage.getItem('lingobabe_survey_completed');
+    setIsLoading(false);
+  }, []);
 
   const handleGetStarted = () => {
-    router.push('/language-selector');
+    // Check if user has completed the survey
+    const hasDoneSurvey = localStorage.getItem('lingobabe_survey_completed');
+    
+    if (hasDoneSurvey === 'true') {
+      router.push('/language-selector');
+    } else {
+      router.push('/welcome-survey');
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden">
-      {/* Responsive video background */}
       <ResponsiveLandingVideo 
         desktopVideo="/tutors/Lingobabe_landing.mp4"
         mobileVideo="/tutors/Lingobabe_landing_mobile.mp4"
         fallbackImage="/tutors/landing_fallback.jpg"
       />
       
-      {/* Content overlay */}
-      <div className="relative z-10 text-center">
-        {/* Optional: Add your logo or heading here */}
-      </div>
-      
-      {/* Call to action button */}
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-center z-10">
         <button
           onClick={handleGetStarted}
