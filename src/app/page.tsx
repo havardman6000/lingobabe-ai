@@ -1,4 +1,4 @@
-// src/app/page.tsx
+// Modify src/app/page.tsx to route users appropriately
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -28,13 +28,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden">
-      {/* Use a gradient background as the ultimate fallback */}
-      <div className="absolute inset-0 bg-gradient-to-r from-green-300 to-blue-300 z-0"></div>
-      
       <ResponsiveLandingVideo 
         desktopVideo="/tutors/Lingobabe_landing.mp4"
         mobileVideo="/tutors/Lingobabe_landing_mobile.mp4"
-        fallbackImage="/assets/image/landing_background.jpg"
+        fallbackImage="/tutors/landing_fallback.jpg"
       />
       
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 text-center z-10">
