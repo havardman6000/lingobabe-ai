@@ -1,0 +1,170 @@
+/* src/components/DynamicBar.css */
+.circular-nav-container {
+    position: fixed;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    pointer-events: none; /* Allow clicks to pass through the container */
+  }
+  
+  .nav-buttons-container {
+    display: flex;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 480px;
+    background-color: white;
+    border-radius: 24px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    pointer-events: auto; /* Re-enable pointer events */
+  }
+  
+  .nav-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    position: relative;
+    width: 48px;
+    height: 48px;
+  }
+  
+  .nav-icon {
+    width: 24px;
+    height: 24px;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+  }
+  
+  .active-center-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% - 20px)); /* Offset it slightly upward */
+    pointer-events: none;
+  }
+  
+  .active-circle {
+    width: 72px;
+    height: 72px;
+    background-color: #00b884; /* The green color from your image */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(0, 184, 132, 0.3);
+    pointer-events: auto; /* Allow clicks on the active button */
+  }
+  
+  .active-circle .nav-icon {
+    width: 32px;
+    height: 32px;
+    opacity: 1;
+    filter: brightness(0) invert(1); /* Make icon white */
+  }
+  
+  /* Ensure icons that aren't active are gray */
+  .nav-icon:not(.active-icon) {
+    filter: grayscale(100%);
+  }
+  
+  /* Icon placeholders for missing icons */
+  .icon-placeholder {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ccc;
+    color: #666;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  
+  .active-placeholder {
+    background-color: #fff;
+    color: #00b884;
+  }
+  
+  .active-circle .icon-placeholder {
+    width: 32px;
+    height: 32px;
+    background-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 16px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 480px) {
+    .nav-buttons-container {
+      width: 95%;
+      padding: 10px 12px;
+    }
+    
+    .nav-button {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .active-circle {
+      width: 64px;
+      height: 64px;
+    }
+    
+    .active-circle .nav-icon {
+      width: 28px;
+      height: 28px;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .nav-buttons-container {
+      max-width: 520px;
+    }
+    
+    .nav-button {
+      width: 56px;
+      height: 56px;
+    }
+    
+    .active-circle {
+      width: 80px;
+      height: 80px;
+    }
+    
+    .active-circle .nav-icon {
+      width: 36px;
+      height: 36px;
+    }
+  }
+  
+  /* Make space for the center button */
+  .nav-buttons-container {
+    position: relative;
+  }
+  
+  /* Add styles for the inactive buttons to be gray */
+  .nav-button .nav-icon {
+    filter: grayscale(100%);
+    opacity: 0.6;
+  }
+  
+  /* Add hover effect */
+  .nav-button:hover .nav-icon {
+    opacity: 0.8;
+  }
+  
+  /* Apply styles to ensure the container has enough height */
+  .circular-nav-container {
+    height: 110px; /* Ensure enough space for the floating button */
+  }

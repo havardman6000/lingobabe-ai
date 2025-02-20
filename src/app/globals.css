@@ -226,3 +226,12 @@ select,
     outline: 3px solid Highlight;
   }
 }
+main#main-content {
+  padding-bottom: 80px; /* Adjust based on the actual height of your navigation bar */
+}
+
+@media (max-width: 480px) {
+  main#main-content {
+    padding-bottom: 70px; /* Smaller padding for mobile */
+  }
+}

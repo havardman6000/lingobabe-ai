@@ -15,20 +15,16 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+        {/* Setting maximum-scale helps users with visual impairments to zoom in while maintaining usability */}
       </head>
       <body>
-        <a href="#main-content" className="skip-to-content">
-          Skip to main content
-        </a>
         <Web3Provider>
           <TokenManagerProvider>
             <div className="min-h-screen relative">
               <div className="fixed top-4 right-4 z-[100]">
                 <EnhancedWalletConnector />
               </div>
-              <main id="main-content">
-                {children}
-              </main>
+              {children}
             </div>
           </TokenManagerProvider>
         </Web3Provider>
