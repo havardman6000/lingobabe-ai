@@ -67,3 +67,4 @@ const BenefitsPage = () => {
 };
 
 export default BenefitsPage;
+//src/app/welcome-survey/pages/BenefitsPage.tsx

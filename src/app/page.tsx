@@ -80,3 +80,4 @@ export default function LandingPage() {
     </div>
   );
 }
+//src/app/page.tsx
