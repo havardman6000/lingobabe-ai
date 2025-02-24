@@ -75,3 +75,4 @@ export const VideoPlayer = ({
     </div>
   );
 }
+//src/components/ChatInterface/VideoPlayer.tsx

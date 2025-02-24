@@ -1,9 +1,7 @@
-// src/components/pages/DailyGoalPage.tsx
 "use client";
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import ContinueButton from '../ContinueButton';
 import SurveyLayout from '../SurveyLayout';
 import { useSurvey } from '@/context/SurveyContext';
 import { useRouter } from 'next/navigation';
@@ -12,9 +10,7 @@ const DailyGoalPage = () => {
   const router = useRouter();
   const { surveyData, updateSurveyData } = useSurvey();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const timeOptions = [
     '5 MIN/DAY',
@@ -26,74 +22,60 @@ const DailyGoalPage = () => {
 
   const handleTimeSelect = (time: string) => {
     updateSurveyData({ dailyGoal: time });
-    setSubmitStatus('idle');
-    setErrorMessage(null);
+    setError(null);
   };
 
-  // src/components/pages/DailyGoalPage.tsx - handleContinue function update
-// src/components/pages/DailyGoalPage.tsx - handleContinue function update
-const handleContinue = async () => {
-  if (!surveyData.dailyGoal || isSubmitting) return;
-  
-  setIsSubmitting(true);
-  setSubmitStatus('loading');
-  setShowLoadingScreen(true); // Show loading immediately
-  
-  // Always save to localStorage as backup
-  try {
-    localStorage.setItem('lingobabe_survey_data', JSON.stringify(surveyData));
-    console.log('Survey data saved to localStorage:', surveyData);
-  } catch (e) {
-    console.warn('Could not save to localStorage:', e);
-  }
-  
-  try {
-    // Attempt to submit to the API
-    const response = await fetch('/api/submit-survey', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(surveyData),
-      cache: 'no-store',
-    });
-
-    const result = await response.json();
-    console.log('Response from API:', result);
-
-    // Mark survey as completed regardless of Google Form submission result
-    localStorage.setItem('lingobabe_survey_completed', 'true');
-    
-    // Navigate to success page
-    router.push('/welcome-survey/success');
-  } catch (err) {
-    console.error('Submission error:', err);
-    
-    // Even on error, mark as completed and continue
-    localStorage.setItem('lingobabe_survey_completed', 'true');
-    router.push('/welcome-survey/success');
-  }
-};
-
-  // Show loading screen if needed
-  if (showLoadingScreen) {
-    return (
-      <div className="min-h-screen bg-[#F5FBFF] flex flex-col items-center justify-center">
-        <div className="z-20 text-center">
-          <div className="w-16 h-16 border-4 border-[#00C853] border-t-transparent rounded-full animate-spin mb-6 mx-auto"></div>
-          <h1 className="text-4xl font-semibold text-[#00C853] mb-4">
-            Preparing your<br />personalized experience...
-          </h1>
-          <p className="text-xl text-gray-600">
-            Setting up your language learning journey
-          </p>
+  const LoadingOverlay = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center">
+        <div className="mb-4">
+          <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
+        <h3 className="text-xl font-semibold mb-2">Almost there!</h3>
+        <p className="text-gray-600">Saving your preferences...</p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const handleSubmit = async () => {
+    if (!surveyData.dailyGoal || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Save to localStorage first
+      localStorage.setItem('lingobabe_survey_data', JSON.stringify(surveyData));
+      
+      const response = await fetch('/api/submit-survey', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(surveyData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to submit survey');
+      }
+
+      // Set completion flag and navigate
+      localStorage.setItem('lingobabe_survey_completed', 'true');
+      router.push('/welcome-survey/success');
+      
+    } catch (err: any) {
+      console.error('Survey submission error:', err);
+      setError(err.message || 'Failed to submit survey. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <SurveyLayout showBackButton showProgressBar currentStep={5}>
-      <div className="flex-1 flex flex-col md:flex-row items-center md:items-start w-full px-4 min-h-0 md:px-20 md:pt-4 h-full">
+      {isSubmitting && <LoadingOverlay />}
+      
+      <div className="flex-1 flex flex-col md:flex-row items-center w-full px-4 min-h-0 md:px-20 md:pt-4">
         {/* Message Container */}
         <div className="w-full md:w-[45%] flex justify-center md:justify-end mb-2 md:mb-0 mt-[-20px] md:mt-0">
           <div className="w-[300px] h-[240px] md:w-[500px] md:h-[350px] relative">
@@ -127,25 +109,24 @@ const handleContinue = async () => {
               </button>
             ))}
             
-            {submitStatus === 'error' && errorMessage && (
+            {error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                <p className="font-medium">Submission failed</p>
-                <p>{errorMessage}</p>
-                <p className="mt-1 text-xs">Your data has been saved locally.</p>
+                {error}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Continue Button Container */}
+      {/* Continue Button */}
       <div className="w-full px-4 md:px-[40px] mt-3 md:mt-6 mb-4 md:mb-10">
-        <ContinueButton 
-          onClick={handleContinue} 
+        <button
+          onClick={handleSubmit}
           disabled={!surveyData.dailyGoal || isSubmitting}
-          isLoading={isSubmitting}
-          nextPage='/welcome-survey/success'
-        />
+          className={`w-full max-w-[400px] h-[50px] mx-auto bg-[#00C853] text-white rounded-[10px] flex items-center justify-center text-xl font-semibold disabled:opacity-50 md:max-w-full md:h-[60px] md:rounded-[10px] ${isSubmitting ? 'cursor-not-allowed' : 'hover:bg-[#00B548]'}`}
+        >
+          {isSubmitting ? 'Submitting...' : 'CONTINUE'}
+        </button>
       </div>
     </SurveyLayout>
   );

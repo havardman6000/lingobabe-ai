@@ -1,4 +1,4 @@
-// src/app/chat/chinese/page.tsx
+//src/app/chat/page.tsx
 'use client';
 
 import { useWeb3 } from '@/components/providers/web3-provider';

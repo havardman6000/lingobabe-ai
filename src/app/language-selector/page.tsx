@@ -181,3 +181,4 @@ const handleLanguageSelect = async (languageId: string) => {
     </div>
   );
 }
+//src/app/language-selector/page.tsx
